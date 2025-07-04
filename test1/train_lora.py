@@ -20,6 +20,15 @@ from transformers import (
     TrainingArguments,
     TrainerCallback,
 )
+import torch
+import os
+
+torch.backends.cuda.matmul.allow_tf32 = True
+torch.backends.cudnn.allow_tf32 = True
+os.environ.setdefault(
+    "PYTORCH_CUDA_ALLOC_CONF",
+    "expandable_segments:True,max_split_size_mb:128",
+)
 
 from . import evaluate
 from .inference import call_student
@@ -65,7 +74,11 @@ class LabelCollator:
         # 1️  先把「提示+答案」拼成完整输入
         sources = [p + self.prefix + a for p, a in zip(prompts, answers)]
         model_inputs = self.tok(
-            sources, padding=True, truncation=True, return_tensors="pt"
+            sources,
+            padding="longest",
+            truncation=True,
+            max_length=1024,
+            return_tensors="pt",
         )
 
         # 2️  再为 labels 制作掩码：提示部分 = -100，答案部分 = token_id
@@ -73,12 +86,13 @@ class LabelCollator:
         labels = model_inputs["input_ids"].clone()
         for i, p in enumerate(prompts):
             prompt_len = len(
-                self.tok(p + self.prefix, add_special_tokens=False)["input_ids"]
+                self.tok(p + self.prefix, add_special_tokens=False)[
+                    "input_ids"
+                ]
             )
             labels[i, :prompt_len] = -100
         model_inputs["labels"] = labels
         return model_inputs
-
 
 
 def _eval_model(tokenizer, model, prompts, refs) -> dict[str, float]:
@@ -134,14 +148,20 @@ def main(cfg: TrainConfig) -> None:
     tokenizer = AutoTokenizer.from_pretrained(
         cfg.base_model, trust_remote_code=True
     )
-    bnb_cfg = BitsAndBytesConfig(load_in_4bit=True)
+    bnb_cfg = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.float16,
+    )
     model = AutoModelForCausalLM.from_pretrained(
         cfg.base_model,
         device_map="auto",
         quantization_config=bnb_cfg,
         trust_remote_code=True,
     )
-    model.gradient_checkpointing_enable()
+    model.gradient_checkpointing_enable(use_reentrant=False)
+    model.config.use_cache = False
     model = prepare_model_for_kbit_training(model)
     peft_cfg = LoraConfig(r=8, lora_alpha=32, lora_dropout=0.05)
     model = get_peft_model(model, peft_cfg)
