@@ -160,7 +160,10 @@ def main(cfg: TrainConfig) -> None:
         quantization_config=bnb_cfg,
         trust_remote_code=True,
     )
-    model.gradient_checkpointing_enable(use_reentrant=False)
+    try:
+        model.gradient_checkpointing_enable(use_reentrant=False)
+    except TypeError:
+        model.gradient_checkpointing_enable()
     model.config.use_cache = False
     model = prepare_model_for_kbit_training(model)
     peft_cfg = LoraConfig(r=8, lora_alpha=32, lora_dropout=0.05)
