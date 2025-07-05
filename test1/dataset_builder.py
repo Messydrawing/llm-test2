@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import random
-from typing import Any, Sequence, Tuple
+from typing import Any, Sequence, Tuple, Optional
 
 
 def _fetch_kline(code: str, days: int):
@@ -51,6 +51,22 @@ def format_prompt(sample: dict[str, Any]) -> str:
     )
 
 
+def _trim_sample_tokens(
+    sample: dict[str, Any], tokenizer, max_tokens: int
+) -> None:
+    """Trim ``kline_summary`` so ``format_prompt(sample)`` fits ``max_tokens``."""
+    if tokenizer is None:
+        return
+    while len(sample["kline_summary"]) > 1:
+        text = format_prompt(sample)
+        if (
+            len(tokenizer(text, add_special_tokens=False)["input_ids"])
+            <= max_tokens
+        ):
+            break
+        sample["kline_summary"].pop(0)
+
+
 def build_dataset(
     stock_codes: Sequence[str],
     *,
@@ -59,6 +75,8 @@ def build_dataset(
     windows_per_stock: int = 1,
     val_ratio: float = 0.2,
     seed: int | None = None,
+    tokenizer=None,
+    max_tokens: int = 1024,
 ) -> Tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Build train/validation datasets from K-line data."""
     from .config import STOCK_CODES
@@ -79,6 +97,7 @@ def build_dataset(
         for win in _sample_windows(df, window, windows_per_stock, rng):
             prompt = _make_prompt(win)
             prompt["stock_code"] = code
+            _trim_sample_tokens(prompt, tokenizer, max_tokens)
             samples.append(prompt)
 
     rng.shuffle(samples)

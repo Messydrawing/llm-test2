@@ -65,32 +65,44 @@ class LabelCollator:
 
     def __call__(self, batch):
         import torch
+        import logging
 
         prompts = [b["prompt"].strip() for b in batch]
         answers = [
             json.dumps(b["label"], ensure_ascii=False).strip() for b in batch
         ]
 
-        # 1️  先把「提示+答案」拼成完整输入
-        sources = [p + self.prefix + a for p, a in zip(prompts, answers)]
+        max_len = 1024
+        sources = []
+        prompt_lens = []
+        for p, a in zip(prompts, answers):
+            enc = self.tok(
+                p + self.prefix,
+                add_special_tokens=False,
+                truncation=True,
+                max_length=max_len,
+            )
+            prompt_len = len(enc["input_ids"])
+            if prompt_len >= max_len:
+                logging.warning(
+                    "Dropping sample with prompt length %d >= max_length",
+                    prompt_len,
+                )
+                continue
+            sources.append(p + self.prefix + a)
+            prompt_lens.append(prompt_len)
+
         model_inputs = self.tok(
             sources,
             padding="longest",
             truncation=True,
-            max_length=1024,
+            max_length=max_len,
             return_tensors="pt",
         )
 
-        # 2️  再为 labels 制作掩码：提示部分 = -100，答案部分 = token_id
-        #    这样 loss 只在答案位置计算
         labels = model_inputs["input_ids"].clone()
-        for i, p in enumerate(prompts):
-            prompt_len = len(
-                self.tok(p + self.prefix, add_special_tokens=False)[
-                    "input_ids"
-                ]
-            )
-            labels[i, :prompt_len] = -100
+        for i, plen in enumerate(prompt_lens):
+            labels[i, :plen] = -100
         model_inputs["labels"] = labels
         return model_inputs
 
