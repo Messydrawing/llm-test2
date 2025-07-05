@@ -88,9 +88,10 @@ pipeline in one command execute:
 python -m test1.distill
 ```
 
-The script will write `labeled_data.jsonl`, `val_labeled_data.jsonl` and the
-trained adapter under `lora_adapter`. Validation metrics are printed and saved
-to `metrics.json`.
+The teacher model labels the prompts and writes `labeled_data.jsonl` for
+training and `val_labeled_data.jsonl` for validation. The fine-tuned adapter is
+stored under `lora_adapter`. Validation metrics are printed and saved to
+`metrics.json`.
 
 ### `distill.py` command
 
