@@ -169,6 +169,8 @@ def main(cfg: TrainConfig) -> None:
     max_steps = cfg.max_steps
     if cfg.epochs is None:
         max_steps = max_steps or 200
+    elif max_steps is None:
+        max_steps = -1
 
     try:
         args = TrainingArguments(
