@@ -57,11 +57,11 @@ def main(
 
     if need_label:
         train_prompts = [dataset_builder.format_prompt(s) for s in train_samples]
-        val_prompts   = [dataset_builder.format_prompt(s) for s in val_samples]
-        if val_ratio > 0
-           teacher_labeler.label_samples(val_prompts, "val_labeled_data.jsonl")
-        else
-           print("[distill] Skip teacher labeling - reuse existing JSONL")
+        val_prompts = [dataset_builder.format_prompt(s) for s in val_samples]
+        if val_ratio > 0:
+            teacher_labeler.label_samples(val_prompts, "val_labeled_data.jsonl")
+        else:
+            print("[distill] Skip teacher labeling - reuse existing JSONL")
 
     train_lora.main(cfg)
 
