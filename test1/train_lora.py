@@ -178,8 +178,22 @@ def main(cfg: TrainConfig) -> None:
         model.gradient_checkpointing_enable()
     model.config.use_cache = False
     model = prepare_model_for_kbit_training(model)
-    peft_cfg = LoraConfig(r=8, lora_alpha=32, lora_dropout=0.05)
+    peft_cfg = LoraConfig(
+        r=8,
+        lora_alpha=32,
+        lora_dropout=0.05,
+        target_modules=[
+            "q_proj",
+            "k_proj",
+            "v_proj",
+            "o_proj",
+            "gate_proj",
+            "up_proj",
+            "down_proj",
+        ],
+    )
     model = get_peft_model(model, peft_cfg)
+    model.print_trainable_parameters()
 
     max_steps = cfg.max_steps
     if cfg.epochs is None:
