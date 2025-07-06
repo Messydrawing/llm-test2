@@ -92,6 +92,8 @@ The teacher model labels the prompts and writes `labeled_data.jsonl` for
 training and `val_labeled_data.jsonl` for validation. The fine-tuned adapter is
 stored under `lora_adapter`. Validation metrics are printed and saved to
 `metrics.json`.
+Prompts are automatically trimmed below the `--max-tokens` limit so that the
+JSON label from the teacher fits after the prompt.
 
 ### `distill.py` command
 
@@ -121,3 +123,4 @@ python -m test1.distill --windows 3 --val-ratio 0.1 --out my_adapter
 - `--windows` – number of windows per stock when building the dataset
 - `--val-ratio` – fraction of data used for validation
 - `--out` – directory for saving the adapter and progress plot
+- `--max-tokens` – trim prompts to this length so the teacher label fits
