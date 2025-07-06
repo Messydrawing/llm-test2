@@ -97,7 +97,16 @@ def build_dataset(
         for win in _sample_windows(df, window, windows_per_stock, rng):
             prompt = _make_prompt(win)
             prompt["stock_code"] = code
-            _trim_sample_tokens(prompt, tokenizer, max_tokens)
+            # --- 强制把 prompt 压到 max_tokens ---
+            if tokenizer:
+                text = format_prompt(prompt)
+                while (
+                    len(tokenizer(text, add_special_tokens=False)["input_ids"])
+                    > max_tokens
+                    and prompt["kline_summary"]
+                ):
+                    prompt["kline_summary"].pop(0)
+                    text = format_prompt(prompt)
             samples.append(prompt)
 
     rng.shuffle(samples)

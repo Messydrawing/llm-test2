@@ -67,35 +67,25 @@ class LabelCollator:
         import torch
         import logging
 
-        prompts = [b["prompt"].strip() for b in batch]
-        answers = [
-            json.dumps(b["label"], ensure_ascii=False).strip() for b in batch
-        ]
-
         max_len = 1024
-        sources = []
+        texts = []
         prompt_lens = []
-        for p, a in zip(prompts, answers):
+        for rec in batch:
+            prompt = rec["prompt"].strip()
+            label = json.dumps(rec["label"], ensure_ascii=False).strip()
             enc = self.tok(
-                p + self.prefix,
+                prompt + "\n\n### 答案：",
                 add_special_tokens=False,
                 truncation=True,
                 max_length=max_len,
             )
-            prompt_len = len(enc["input_ids"])
-            if prompt_len >= max_len:
-                logging.warning(
-                    "Dropping sample with prompt length %d >= max_length",
-                    prompt_len,
-                )
-                continue
-            sources.append(p + self.prefix + a)
-            prompt_lens.append(prompt_len)
+            prompt_lens.append(len(enc["input_ids"]))
+            texts.append(f"{prompt}\n\n### 答案：{label}")
 
         model_inputs = self.tok(
-            sources,
+            texts,
             padding="longest",
-            truncation=True,
+            truncation=True,  # 让 tokenizer 自动截断
             max_length=max_len,
             return_tensors="pt",
         )
