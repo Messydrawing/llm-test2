@@ -1,18 +1,12 @@
-# test1/distill.py  ── v4: auto-clean JSONL  ─────────────────────────
+# test1/distill.py  ── v5 ───────────────────────────────────────────────
 from __future__ import annotations
-
-import argparse, json, random, sys
+import argparse, json, sys
 from pathlib import Path
-from typing import Any
 
-from transformers import AutoTokenizer
-
-from huggingface_hub import snapshot_download
-from transformers import AutoTokenizer
-tok = AutoTokenizer.from_pretrained(cfg.base_model, trust_remote_code=True)
 from transformers.utils import logging as hf_logging
-hf_logging.set_verbosity_error()
+hf_logging.set_verbosity_error()                      # 静音 INFO/WARNING
 
+# 内部模块
 from . import (
     config,
     dataset_builder,
@@ -20,119 +14,107 @@ from . import (
     teacher_labeler,
     train_lora,
 )
+from .clean_jsonl import main as clean_jsonl_once
 
-# === 引入清洗工具 ===
-from .clean_jsonl import main as clean_jsonl_main  # 确保 clean_jsonl.py 位于 test1/ 目录
-# --------------------------------------------------------------------
+# ╭───────────────────────── 辅助函数 ─────────────────────────╮
+def _clean_once(src: str | Path) -> str:
+    """调用 clean_jsonl 清洗文件，返回 cleaned_* 路径。"""
+    src = Path(src)
+    if not src.exists():
+        sys.exit(f"[distill] ❌ 找不到 {src}")
+    dst = src.with_name(f"cleaned_{src.name}")
+    print(f"[distill] 清洗 {src.name} → {dst.name}")
+    clean_jsonl_once(src, dst)
+    return str(dst)
 
-
-def _download_model(model_name: str, cache_dir: str = "models") -> str:
-    """Ensure ``model_name`` is downloaded and return its local path."""
-    dest = Path(cache_dir) / model_name.replace("/", "_")
-    if not dest.exists():
-        print(f"Downloading model {model_name} to {dest}...")
-        snapshot_download(model_name, local_dir=dest, local_dir_use_symlinks=False)
-    else:
-        print(f"Model already available at {dest}")
-    return str(dest)
-
-
-def _clean_once(in_path: str | Path) -> str:
-    """Run clean_jsonl and return cleaned file path."""
-    inp = Path(in_path)
-    out = inp.with_name(f"cleaned_{inp.name}")
-    if not inp.exists():
-        sys.exit(f"[distill] ❌  expected {inp} but not found")
-    print(f"[distill] cleaning {inp.name} → {out.name}")
-    clean_jsonl_main(inp, out)          # 调用清洗函数
-    return str(out)
-
-
-def main(
+# ╭────────────────────────── 主流程 ─────────────────────────╮
+def run_pipeline(
     *,
-    stock: str | None = None,
-    windows: int = 1,
-    val_ratio: float = 0.2,
-    skip_teacher: bool = False,
-    overwrite: bool = False,
-    output_dir: str = "lora_adapter",
-    max_tokens: int = 800,
+    windows: int,
+    val_ratio: float,
+    max_tokens: int,
+    max_len: int,
+    output_dir: str,
+    stock: str | None,
+    skip_teacher: bool,
+    overwrite: bool,
 ) -> None:
-    cfg = train_lora.TrainConfig(
-        data_path="cleaned_labeled_data.jsonl",         # ← 训练始终用 cleaned_*
-        eval_path="cleaned_val_labeled_data.jsonl",
-        output_dir=output_dir,
-        max_steps=200,
-    )
-    cfg.base_model = _download_model(cfg.base_model)
-    tokenizer = AutoTokenizer.from_pretrained(cfg.base_model, trust_remote_code=True)
 
-    # 1️⃣  构造窗口
-    codes = config.STOCK_CODES if stock is None else [stock]
-    train_samples, val_samples = dataset_builder.build_dataset(
-        codes,
+    # 1) 构造数据集
+    codes = [stock] if stock else config.STOCK_CODES
+    train_s, val_s = dataset_builder.build_dataset(
+        codes=codes,
         days=180,
         window=30,
         windows_per_stock=windows,
         val_ratio=val_ratio,
-        tokenizer=tok,             # ★ 让 _trim_sample_tokens() 生效
+        tokenizer=None,         # 若内部需要可自行加载
+        max_tokens=max_tokens,  # ★ Prompt 长度上限
     )
 
-    # 2️⃣  判断是否需要重新向教师提问
-    need_label = not skip_teacher
-    need_label |= overwrite
-    need_label |= not Path("labeled_data.jsonl").exists()
-    need_label |= val_ratio > 0 and not Path("val_labeled_data.jsonl").exists()
+    # 2) 判断是否需要教师标注
+    label_needed = True
+    if skip_teacher and not overwrite:
+        label_needed = not Path("labeled_data.jsonl").exists()
+        if val_ratio:
+            label_needed |= not Path("val_labeled_data.jsonl").exists()
 
-    # 3️⃣  调教师模型
-    if need_label:
-        train_prompts = [dataset_builder.format_prompt(s) for s in train_samples]
-        teacher_labeler.label_samples(train_prompts, "labeled_data.jsonl")
-
-        if val_ratio > 0:
-            val_prompts = [dataset_builder.format_prompt(s) for s in val_samples]
-            teacher_labeler.label_samples(val_prompts, "val_labeled_data.jsonl")
+    # 3) 教师模型打标
+    if label_needed:
+        print("[distill] ▶ 教师模型标注…")
+        teacher_labeler.label_samples(
+            [dataset_builder.format_prompt(s) for s in train_s],
+            "labeled_data.jsonl",
+        )
+        if val_ratio:
+            teacher_labeler.label_samples(
+                [dataset_builder.format_prompt(s) for s in val_s],
+                "val_labeled_data.jsonl",
+            )
     else:
-        print("[distill] Skip teacher labeling – reuse existing JSONL")
+        print("[distill] ▶ 跳过教师标注，使用现有 JSONL")
 
-    # 4️⃣  清洗（若 cleaned_ 文件不存在或 overwrite）
+    # 4) 清洗
     train_jsonl = _clean_once("labeled_data.jsonl")
-    val_jsonl = (
-        _clean_once("val_labeled_data.jsonl") if val_ratio > 0 else None
+    val_jsonl   = _clean_once("val_labeled_data.jsonl") if val_ratio else None
+
+    # 5) LoRA 训练
+    lora_cfg = train_lora.TrainConfig(
+        data_path=train_jsonl,
+        eval_path=val_jsonl,
+        output_dir=output_dir,
+        max_len=max_len,        # ★ 训练截断长度
+        max_steps=200,
     )
+    train_lora.main(lora_cfg)
 
-    # 5️⃣  LoRA 训练
-    cfg.data_path = train_jsonl
-    cfg.eval_path = val_jsonl
-    train_lora.main(cfg)
-
-    # 6️⃣  评估
+    # 6) 评估
     prompts, refs = evaluate.load_dataset(val_jsonl or train_jsonl)
-    metrics = evaluate.evaluate_model(cfg.output_dir, prompts, refs)
+    metrics = evaluate.evaluate_model(output_dir, prompts, refs)
     print("\nValidation metrics:")
-    for k, v in metrics.items():
-        print(f"{k}: {v:.4f}")
-    Path("metrics.json").write_text(json.dumps(metrics, ensure_ascii=False))
+    print(json.dumps(metrics, indent=2, ensure_ascii=False))
+    Path(output_dir, "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False))
 
+# ╭─────────────────────────── CLI ───────────────────────────╮
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser("Distill pipeline")
+    ap.add_argument("--windows", type=int, default=1, help="每只股票样本数")
+    ap.add_argument("--val-ratio", type=float, default=0.2, help="验证集比例")
+    ap.add_argument("--max-tokens", type=int, default=1024, help="Prompt 最大 token 长度")
+    ap.add_argument("--max-len", type=int, default=1024, help="训练截断长度")
+    ap.add_argument("--out", default="lora_adapter", help="输出目录")
+    ap.add_argument("--stock", help="仅处理指定股票代码")
+    ap.add_argument("--skip-teacher", action="store_true", help="跳过教师标注")
+    ap.add_argument("--overwrite", action="store_true", help="覆盖已存在文件")
+    args = ap.parse_args()
 
-# ------------------------- CLI --------------------------
-if __name__ == "__main__":  # pragma: no cover
-    parser = argparse.ArgumentParser(description="Run the distillation pipeline")
-    parser.add_argument("--windows", type=int, default=1, help="Windows per stock")
-    parser.add_argument("--val-ratio", type=float, default=0.2, help="Fraction for validation")
-    parser.add_argument("--skip-teacher", action="store_true", help="Use existing JSONL, no teacher call")
-    parser.add_argument("--overwrite", action="store_true", help="Force re-label / re-clean")
-    parser.add_argument("--out", default="lora_adapter", help="Output directory")
-    parser.add_argument("--max-tokens", type=int, default=800, help="Prompt token limit")
-    parser.add_argument("--stock", help="Single stock code to process")
-    args = parser.parse_args()
-
-    main(
-        stock=args.stock,
+    run_pipeline(
         windows=args.windows,
         val_ratio=args.val_ratio,
+        max_tokens=args.max_tokens,
+        max_len=args.max_len,
+        output_dir=args.out,
+        stock=args.stock,
         skip_teacher=args.skip_teacher,
         overwrite=args.overwrite,
-        output_dir=args.out,
-        max_tokens=args.max_tokens,
     )
