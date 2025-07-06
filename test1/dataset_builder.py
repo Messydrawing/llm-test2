@@ -78,7 +78,11 @@ def build_dataset(
     tokenizer=None,
     max_tokens: int = 1024,
 ) -> Tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Build train/validation datasets from K-line data."""
+    """Build train/validation datasets from K-line data.
+
+    Prompts are trimmed with ``tokenizer`` so the final length stays under
+    ``max_tokens`` leaving space for the label appended during training.
+    """
     from .config import STOCK_CODES
 
     codes = list(stock_codes) if stock_codes else list(STOCK_CODES)
@@ -97,7 +101,7 @@ def build_dataset(
         for win in _sample_windows(df, window, windows_per_stock, rng):
             prompt = _make_prompt(win)
             prompt["stock_code"] = code
-            # --- 强制把 prompt 压到 max_tokens ---
+            # --- Trim prompt so tokenized length stays below ``max_tokens`` ---
             if tokenizer:
                 text = format_prompt(prompt)
                 while (

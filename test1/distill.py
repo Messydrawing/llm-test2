@@ -5,6 +5,8 @@ import argparse, json, random, sys
 from pathlib import Path
 from typing import Any
 
+from transformers import AutoTokenizer
+
 from huggingface_hub import snapshot_download
 
 from . import (
@@ -50,6 +52,7 @@ def main(
     skip_teacher: bool = False,
     overwrite: bool = False,
     output_dir: str = "lora_adapter",
+    max_tokens: int = 800,
 ) -> None:
     cfg = train_lora.TrainConfig(
         data_path="cleaned_labeled_data.jsonl",         # ← 训练始终用 cleaned_*
@@ -58,6 +61,7 @@ def main(
         max_steps=200,
     )
     cfg.base_model = _download_model(cfg.base_model)
+    tokenizer = AutoTokenizer.from_pretrained(cfg.base_model, trust_remote_code=True)
 
     # 1️⃣  构造窗口
     codes = config.STOCK_CODES if stock is None else [stock]
@@ -67,6 +71,8 @@ def main(
         window=30,
         windows_per_stock=windows,
         val_ratio=val_ratio,
+        tokenizer=tokenizer,
+        max_tokens=max_tokens,
     )
 
     # 2️⃣  判断是否需要重新向教师提问
@@ -114,6 +120,7 @@ if __name__ == "__main__":  # pragma: no cover
     parser.add_argument("--skip-teacher", action="store_true", help="Use existing JSONL, no teacher call")
     parser.add_argument("--overwrite", action="store_true", help="Force re-label / re-clean")
     parser.add_argument("--out", default="lora_adapter", help="Output directory")
+    parser.add_argument("--max-tokens", type=int, default=800, help="Prompt token limit")
     parser.add_argument("--stock", help="Single stock code to process")
     args = parser.parse_args()
 
@@ -124,4 +131,5 @@ if __name__ == "__main__":  # pragma: no cover
         skip_teacher=args.skip_teacher,
         overwrite=args.overwrite,
         output_dir=args.out,
+        max_tokens=args.max_tokens,
     )
