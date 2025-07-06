@@ -48,7 +48,7 @@ def main(inp: pathlib.Path, out: pathlib.Path):
 
     # 再次验证
     Dataset.from_list([json.loads(x) for x in good])
-    print("[clean_jsonl] OK ✅  dataset loaded")
+    print("[clean_jsonl] OK   dataset loaded")
 
     print("\n[clean_jsonl] summary")
     for k, v in stats.items():
