@@ -22,7 +22,7 @@ def load_dataset(path: str) -> tuple[list[str], list[str]]:
             prompts.append(rec["prompt"])
             label = rec.get("label", "")
             if isinstance(label, dict):
-                refs.append(json.dumps(label, ensure_ascii=False))
+                refs.append(json.dumps(label, ensure_ascii=False, sort_keys=True))
             else:
                 refs.append(str(label))
     return prompts, refs
