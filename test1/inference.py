@@ -1,17 +1,31 @@
-from __future__ import annotations
+"""
+Compare teacher (DeepSeek‑R1) and student (Fin‑R1 LoRA) on a single question.
+* teacher 调用可选；若缺 API KEY 会返回占位字符串
+* student 默认 4‑bit NF4 量化加载，可通过参数替换
+* 去除 Prompt 回显，只保留 “### 答案：” 之后的文本
+"""
 
-import argparse
-import os
-import re
+from __future__ import annotations
+import argparse, os, re, warnings, json
+from pathlib import Path
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers.utils import logging as hf_logging
+
+# ─── 静音 Transformers 的 INFO/WARNING ───────────────────────────────────
+hf_logging.set_verbosity_error()
+warnings.filterwarnings("ignore", message=r"^Caching is incompatible with gradient checkpointing")
+
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 
 from .config import STOCK_CODES, SUMMARY_DAYS
 from .data_loader import EastMoneyAPI
 
-
+# ╭───────────────────────────────────────────────╮
+# │                 ⬇ 数据辅助函数                │
+# ╰───────────────────────────────────────────────╯
 def summarize_stock(question: str, days: int = SUMMARY_DAYS) -> str:
+    """从问句里抽取 6 位股票代码并给出近 N 日涨跌幅。"""
     match = re.search(r"\b(\d{6})\b", question)
     code = match.group(1) if match else STOCK_CODES[0]
     api = EastMoneyAPI()
@@ -20,74 +34,95 @@ def summarize_stock(question: str, days: int = SUMMARY_DAYS) -> str:
         return ""
     recent = df.tail(days)
     pct = ((recent["close"].iloc[-1] / recent["close"].iloc[0]) - 1) * 100
-    return f"{code} has changed {pct:.2f}% in the last {days} days."
+    return f"【行情提示】股票 {code} 近{days}日涨跌幅：{pct:.2f}%。\n"
 
+
+# ╭───────────────────────────────────────────────╮
+# │           ⬇ 可选 — 远程教师模型调用            │
+# ╰───────────────────────────────────────────────╯
+ARK_API_KEY = os.getenv("ARK_API_KEY", "ff6a5d1b-beef-4b53-aa49-7015da1693a1")
 
 def call_teacher(prompt: str) -> str:
-    api_key = "ff6a5d1b-beef-4b53-aa49-7015da1693a1"
-    if not api_key:
+    if not ARK_API_KEY:
         return "[missing ARK_API_KEY]"
     try:
         from volcenginesdkarkruntime import Ark
-
-        client = Ark(api_key=api_key)
+        client = Ark(api_key=ARK_API_KEY)
         resp = client.chat.completions.create(
             model="deepseek-r1-250528",
             messages=[{"role": "user", "content": prompt}],
         )
-        return resp.choices[0].message.content
+        return resp.choices[0].message.content.strip()
     except Exception as e:  # pragma: no cover - network
         return f"[teacher model error: {e}]"
 
 
+# ╭───────────────────────────────────────────────╮
+# │               ⬇ 本地学生模型                  │
+# ╰───────────────────────────────────────────────╯
 def load_student(model_name: str = "SUFE-AIFLM-Lab/Fin-R1"):
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_name, use_fast=False, trust_remote_code=True
+    bnb_cfg = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_compute_dtype=torch.float16,
     )
-    if torch.cuda.is_available():
-        model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            device_map="auto",
-            torch_dtype=torch.float16,
-            trust_remote_code=True,
-        )
-    else:
-        print("[Warning] GPU not available, using CPU for student model.")
-        model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            device_map="cpu",
-            trust_remote_code=True,
-        )
-    return tokenizer, model
+    tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+    tokenizer.pad_token = tokenizer.eos_token
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        device_map="auto",
+        torch_dtype=torch.float16,
+        quantization_config=bnb_cfg if torch.cuda.is_available() else None,
+        trust_remote_code=True,
+    )
+    return tokenizer, model.eval()
 
 
-def call_student(tokenizer, model, prompt: str) -> str:
-    enc = tokenizer(prompt, return_tensors="pt")
-    enc = {k: v.to(model.device) for k, v in enc.items()}
-    out = model.generate(**enc, max_new_tokens=512, temperature=0.7, top_p=0.8)
-    return tokenizer.decode(out[0], skip_special_tokens=True)
+def call_student(tokenizer, model, prompt: str, max_new_tokens: int = 256) -> str:
+    inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+    out = model.generate(
+        **inputs,
+        max_new_tokens=max_new_tokens,
+        do_sample=False,
+        pad_token_id=tokenizer.eos_token_id,
+    )
+    text = tokenizer.decode(out[0], skip_special_tokens=True)
+    # ★ 只保留回答段，去除 Prompt 回显
+    if "### 答案：" in text:
+        text = text.split("### 答案：")[-1].strip()
+    return text
 
 
-def run(question: str) -> dict[str, str]:
-    info = summarize_stock(question)
-    prompt = question if not info else f"{question}\n{info}"
-    with open("prompt.txt", "w", encoding="utf-8") as f:
-        f.write(prompt)
-    teacher = call_teacher(prompt)
-    tokenizer, model = load_student()
-    student = call_student(tokenizer, model, prompt)
-    return {"question": question, "teacher": teacher, "student": student}
+# ╭───────────────────────────────────────────────╮
+# │                  ⬇ 主流程                     │
+# ╰───────────────────────────────────────────────╯
+def run(question: str, model_path: str | None = None) -> dict[str, str]:
+    """拼 Prompt → 调 teacher & student → 返回 dict 结果"""
+    prompt = question + "\n" + summarize_stock(question)
+    Path("prompt.txt").write_text(prompt, encoding="utf-8")
+
+    teacher_answer = call_teacher(prompt)
+
+    tok, mdl = load_student(model_path or "SUFE-AIFLM-Lab/Fin-R1")
+    student_answer = call_student(tok, mdl, prompt)
+
+    return {"prompt": prompt, "teacher": teacher_answer, "student": student_answer}
 
 
+# ╭───────────────────────────────────────────────╮
+# │                    CLI                        │
+# ╰───────────────────────────────────────────────╯
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Compare teacher and student")
-    parser.add_argument("question", help="Financial question")
-    args = parser.parse_args()
-    result = run(args.question)
-    print("教师模型回答:")
-    print(result["teacher"])
-    print("\n学生模型回答:")
-    print(result["student"])
+    ap = argparse.ArgumentParser(description="Compare teacher & student answer")
+    ap.add_argument("question", help="Financial question in Chinese")
+    ap.add_argument("--student", default="SUFE-AIFLM-Lab/Fin-R1", help="Student model or local LoRA dir")
+    args = ap.parse_args()
+
+    res = run(args.question, model_path=args.student)
+    print("【Prompt】\n" + res["prompt"])
+    print("\n【教师模型 DeepSeek‑R1】\n" + res["teacher"])
+    print("\n【学生模型】\n" + res["student"])
 
 
 if __name__ == "__main__":  # pragma: no cover - CLI
