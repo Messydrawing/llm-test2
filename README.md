@@ -201,7 +201,7 @@ After fine-tuning:  bleu: 0.4519, rougeL: 0.5123, embed: 0.8921
 * **单独评估**：对比微调前后的模型性能：
 
   ```bash
-  python evaluate.py --data cleaned_val_labeled_data.jsonl \
+  python -m test1.evaluate.py --data cleaned_val_labeled_data.jsonl \
       --base-model Qwen/Qwen1.5-7B --tuned-model finmodel_lora
   ```
 
