@@ -8,6 +8,10 @@ from typing import Any
 from transformers import AutoTokenizer
 
 from huggingface_hub import snapshot_download
+from transformers import AutoTokenizer
+tok = AutoTokenizer.from_pretrained(cfg.base_model, trust_remote_code=True)
+from transformers.utils import logging as hf_logging
+hf_logging.set_verbosity_error()
 
 from . import (
     config,
@@ -71,8 +75,7 @@ def main(
         window=30,
         windows_per_stock=windows,
         val_ratio=val_ratio,
-        tokenizer=tokenizer,
-        max_tokens=max_tokens,
+        tokenizer=tok,             # ★ 让 _trim_sample_tokens() 生效
     )
 
     # 2️⃣  判断是否需要重新向教师提问
