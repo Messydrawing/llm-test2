@@ -60,7 +60,7 @@ def call_teacher(prompt: str) -> str:
 # ╭───────────────────────────────────────────────╮
 # │               ⬇ 本地学生模型                  │
 # ╰───────────────────────────────────────────────╯
-def load_student(model_name: str = "SUFE-AIFLM-Lab/Fin-R1"):
+def load_student(model_name: str = "Qwen/Qwen-1.5 7B"):
     bnb_cfg = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_quant_type="nf4",
