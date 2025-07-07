@@ -40,7 +40,7 @@ def summarize_stock(question: str, days: int = SUMMARY_DAYS) -> str:
 # ╭───────────────────────────────────────────────╮
 # │           ⬇ 可选 — 远程教师模型调用            │
 # ╰───────────────────────────────────────────────╯
-ARK_API_KEY = os.getenv("ARK_API_KEY", "ff6a5d1b-beef-4b53-aa49-7015da1693a1")
+ARK_API_KEY = os.getenv("ARK_API_KEY", "...此处填充火山引擎的api...")
 
 def call_teacher(prompt: str) -> str:
     if not ARK_API_KEY:
