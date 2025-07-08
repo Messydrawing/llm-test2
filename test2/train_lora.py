@@ -107,7 +107,6 @@ def main(cfg: TrainConfig) -> None:
         train_dataset=train_ds,
         eval_dataset=eval_ds,
         peft_config=lora_cfg,
-        dataset_text_field="text",
         args=args,
     )
 
@@ -118,6 +117,8 @@ def main(cfg: TrainConfig) -> None:
         trainer_kwargs["processing_class"] = tokenizer
     if "max_seq_length" in sig.parameters:
         trainer_kwargs["max_seq_length"] = cfg.max_len
+    if "dataset_text_field" in sig.parameters:
+        trainer_kwargs["dataset_text_field"] = "text"
 
     trainer = SFTTrainer(**trainer_kwargs)
     trainer.train()
