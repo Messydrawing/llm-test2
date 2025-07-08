@@ -102,16 +102,24 @@ def main(cfg: TrainConfig) -> None:
 
     args = TrainingArguments(**args_kwargs)
 
-    trainer = SFTTrainer(
+    trainer_kwargs = dict(
         model=model,
-        processing_class=tokenizer,
         train_dataset=train_ds,
         eval_dataset=eval_ds,
         peft_config=lora_cfg,
-        max_seq_length=cfg.max_len,
         dataset_text_field="text",
         args=args,
     )
+
+    sig = inspect.signature(SFTTrainer.__init__)
+    if "tokenizer" in sig.parameters:
+        trainer_kwargs["tokenizer"] = tokenizer
+    else:
+        trainer_kwargs["processing_class"] = tokenizer
+    if "max_seq_length" in sig.parameters:
+        trainer_kwargs["max_seq_length"] = cfg.max_len
+
+    trainer = SFTTrainer(**trainer_kwargs)
     trainer.train()
     trainer.model.save_pretrained(cfg.output_dir)
     tokenizer.save_pretrained(cfg.output_dir)
