@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 from dataclasses import dataclass
+import inspect
 
 import torch
 from datasets import Dataset
@@ -82,7 +83,7 @@ def main(cfg: TrainConfig) -> None:
         ],
     )
 
-    args = TrainingArguments(
+    args_kwargs = dict(
         output_dir=cfg.output_dir,
         per_device_train_batch_size=cfg.batch_size,
         gradient_accumulation_steps=cfg.grad_accum,
@@ -90,10 +91,16 @@ def main(cfg: TrainConfig) -> None:
         max_steps=cfg.max_steps or -1,
         learning_rate=cfg.lr,
         logging_steps=1,
-        evaluation_strategy="epoch" if eval_ds else "no",
-        save_strategy="epoch",
         remove_unused_columns=False,
     )
+
+    sig = inspect.signature(TrainingArguments.__init__)
+    if "evaluation_strategy" in sig.parameters:
+        args_kwargs["evaluation_strategy"] = "epoch" if eval_ds else "no"
+    if "save_strategy" in sig.parameters:
+        args_kwargs["save_strategy"] = "epoch"
+
+    args = TrainingArguments(**args_kwargs)
 
     trainer = SFTTrainer(
         model=model,
