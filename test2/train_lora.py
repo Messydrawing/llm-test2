@@ -104,7 +104,7 @@ def main(cfg: TrainConfig) -> None:
 
     trainer = SFTTrainer(
         model=model,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         train_dataset=train_ds,
         eval_dataset=eval_ds,
         peft_config=lora_cfg,
