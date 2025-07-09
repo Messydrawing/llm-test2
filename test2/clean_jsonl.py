@@ -14,11 +14,16 @@ def normalize_label(lab):
 
     # 字典：必须含有 prediction / analysis / advice 任一键
     if isinstance(lab, dict):
-        if any(
+        has_main = any(
             isinstance(lab.get(k), str) and lab[k].strip()
             for k in ("prediction", "analysis", "advice")
-        ):
-            return json.dumps(lab, ensure_ascii=False)
+        )
+        if has_main:
+            return (
+                lab
+                if "reasoning" in lab
+                else json.dumps(lab, ensure_ascii=False)
+            )
 
     return None  # 其它类型无效
 
