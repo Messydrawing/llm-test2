@@ -6,6 +6,11 @@ from dataclasses import dataclass
 import inspect
 
 import torch
+import torch.optim.lr_scheduler as lr_sched
+
+if not hasattr(lr_sched, "LRScheduler"):
+    lr_sched.LRScheduler = lr_sched._LRScheduler
+
 from datasets import Dataset
 from peft import LoraConfig
 from transformers import (
