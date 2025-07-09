@@ -33,7 +33,7 @@ class TrainConfig:
     epochs: int | None = 1
     max_steps: int | None = None
     grad_accum: int = 4
-    max_len: int = 1024
+    max_len: int = 4096
 
 
 IGNORE_INDEX = -100
@@ -82,6 +82,11 @@ class LabelCollator:
         labels[:, :] = IGNORE_INDEX
         for i, plen in enumerate(prompt_lens):
             labels[i, plen : enc["input_ids"].size(1)] = enc["input_ids"][i, plen:]
+
+        if (labels != IGNORE_INDEX).sum() == 0:
+            raise ValueError(
+                "\u5168\u90e8 label \u88ab\u622a\u6389\uff1b\u8bf7\u7f29\u77ed prompt \u6216\u589e\u5927 --max-len"
+            )
 
         enc["labels"] = labels
         return enc
@@ -168,7 +173,7 @@ if __name__ == "__main__":
     ap.add_argument("--out", default="lora_adapter")
     ap.add_argument("--epochs", type=int, default=1)
     ap.add_argument("--max-steps", type=int)
-    ap.add_argument("--max-len", type=int, default=1024)
+    ap.add_argument("--max-len", type=int, default=4096)
     ap.add_argument("--batch-size", type=int, default=1)
     args = ap.parse_args()
 
