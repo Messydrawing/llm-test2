@@ -50,9 +50,10 @@ def summarize_stock(question: str, days: int = SUMMARY_DAYS) -> str:
 ARK_API_KEY = os.getenv("ARK_API_KEY", "...此处填充火山引擎的api...")
 
 
-def call_teacher(prompt: str) -> str:
+def call_teacher(prompt: str) -> dict[str, str]:
+    """Call the remote teacher model and return its answer and reasoning."""
     if not ARK_API_KEY:
-        return "[missing ARK_API_KEY]"
+        return {"content": "[missing ARK_API_KEY]", "reasoning": ""}
     try:
         from volcenginesdkarkruntime import Ark
 
@@ -61,9 +62,12 @@ def call_teacher(prompt: str) -> str:
             model="deepseek-r1-250528",
             messages=[{"role": "user", "content": prompt}],
         )
-        return resp.choices[0].message.content.strip()
+        msg = resp.choices[0].message
+        content = msg.content.strip()
+        reasoning = getattr(msg, "reasoning_content", "").strip()
+        return {"content": content, "reasoning": reasoning}
     except Exception as e:  # pragma: no cover - network
-        return f"[teacher model error: {e}]"
+        return {"content": f"[teacher model error: {e}]", "reasoning": ""}
 
 
 # ╭───────────────────────────────────────────────╮
@@ -109,7 +113,7 @@ def call_student(
 # ╭───────────────────────────────────────────────╮
 # │                  ⬇ 主流程                     │
 # ╰───────────────────────────────────────────────╯
-def run(question: str, model_path: str | None = None) -> dict[str, str]:
+def run(question: str, model_path: str | None = None) -> dict[str, object]:
     """拼 Prompt → 调 teacher & student → 返回 dict 结果"""
     prompt = question + "\n" + summarize_stock(question)
     Path("prompt.txt").write_text(prompt + "\n\n### 答案：", encoding="utf-8")
@@ -143,7 +147,9 @@ def main() -> None:
 
     res = run(args.question, model_path=args.student)
     print("【Prompt】\n" + res["prompt"])
-    print("\n【教师模型 DeepSeek‑R1】\n" + res["teacher"])
+    print("\n【教师模型 DeepSeek‑R1】\n" + res["teacher"]["content"])
+    if res["teacher"].get("reasoning"):
+        print("\n【教师模型推理】\n" + res["teacher"]["reasoning"])
     print("\n【学生模型】\n" + res["student"])
 
 
