@@ -93,18 +93,17 @@ def load_student(model_name: str = "Qwen/Qwen1.5-7B"):
 def call_student(
     tokenizer, model, prompt: str, max_new_tokens: int = 256
 ) -> str:
+    prompt = prompt.rstrip() + "\n\n### 答案："
     inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
     out = model.generate(
         **inputs,
         max_new_tokens=max_new_tokens,
         do_sample=False,
         pad_token_id=tokenizer.eos_token_id,
+        use_cache=True,
     )
-    text = tokenizer.decode(out[0], skip_special_tokens=True)
-    # ★ 只保留回答段，去除 Prompt 回显
-    if "### 答案：" in text:
-        text = text.split("### 答案：")[-1].strip()
-    return text
+    new_tokens = out[0][inputs["input_ids"].size(1) :]
+    return tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
 
 
 # ╭───────────────────────────────────────────────╮
@@ -113,7 +112,7 @@ def call_student(
 def run(question: str, model_path: str | None = None) -> dict[str, str]:
     """拼 Prompt → 调 teacher & student → 返回 dict 结果"""
     prompt = question + "\n" + summarize_stock(question)
-    Path("prompt.txt").write_text(prompt, encoding="utf-8")
+    Path("prompt.txt").write_text(prompt + "\n\n### 答案：", encoding="utf-8")
 
     teacher_answer = call_teacher(prompt)
 
@@ -121,7 +120,7 @@ def run(question: str, model_path: str | None = None) -> dict[str, str]:
     student_answer = call_student(tok, mdl, prompt)
 
     return {
-        "prompt": prompt,
+        "prompt": prompt + "\n\n### 答案：",
         "teacher": teacher_answer,
         "student": student_answer,
     }
