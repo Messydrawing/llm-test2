@@ -12,14 +12,14 @@ if not hasattr(lr_sched, "LRScheduler"):
     lr_sched.LRScheduler = lr_sched._LRScheduler
 
 from datasets import Dataset
-from peft import LoraConfig
+from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
     BitsAndBytesConfig,
     TrainingArguments,
+    Trainer,
 )
-from trl import SFTTrainer
 
 
 @dataclass
@@ -36,8 +36,11 @@ class TrainConfig:
     max_len: int = 1024
 
 
+IGNORE_INDEX = -100
+
+
 def _load_dataset(path: str) -> Dataset:
-    texts = []
+    recs = []
     with open(path, encoding="utf-8") as f:
         for line in f:
             rec = json.loads(line)
@@ -47,8 +50,41 @@ def _load_dataset(path: str) -> Dataset:
                 label = json.dumps(label, ensure_ascii=False, sort_keys=True)
             else:
                 label = str(label).strip()
-            texts.append(f"{prompt}\n\n### 答案：{label}")
-    return Dataset.from_dict({"text": texts})
+            recs.append({"prompt": prompt, "label": label})
+    return Dataset.from_list(recs)
+
+
+class LabelCollator:
+    def __init__(self, tokenizer, max_len: int = 1024):
+        self.tok = tokenizer
+        self.max_len = max_len
+        if self.tok.pad_token is None:
+            self.tok.pad_token = self.tok.eos_token
+
+    def __call__(self, batch):
+        texts, prompt_lens = [], []
+        for rec in batch:
+            prompt = rec["prompt"].strip()
+            label = rec["label"].strip()
+            full = f"{prompt}\n\n### 答案：{label}"
+            plen = len(self.tok(prompt + "\n\n### 答案：")["input_ids"])
+            prompt_lens.append(plen)
+            texts.append(full)
+
+        enc = self.tok(
+            texts,
+            padding="longest",
+            truncation=True,
+            max_length=self.max_len,
+            return_tensors="pt",
+        )
+        labels = enc["input_ids"].clone()
+        labels[:, :] = IGNORE_INDEX
+        for i, plen in enumerate(prompt_lens):
+            labels[i, plen : enc["input_ids"].size(1)] = enc["input_ids"][i, plen:]
+
+        enc["labels"] = labels
+        return enc
 
 
 def main(cfg: TrainConfig) -> None:
@@ -107,27 +143,20 @@ def main(cfg: TrainConfig) -> None:
 
     args = TrainingArguments(**args_kwargs)
 
-    trainer_kwargs = dict(
+    model = prepare_model_for_kbit_training(model)
+    model = get_peft_model(model, lora_cfg)
+
+    collator = LabelCollator(tokenizer, cfg.max_len)
+
+    trainer = Trainer(
         model=model,
+        args=args,
         train_dataset=train_ds,
         eval_dataset=eval_ds,
-        peft_config=lora_cfg,
-        args=args,
+        data_collator=collator,
     )
-
-    sig = inspect.signature(SFTTrainer.__init__)
-    if "tokenizer" in sig.parameters:
-        trainer_kwargs["tokenizer"] = tokenizer
-    else:
-        trainer_kwargs["processing_class"] = tokenizer
-    if "max_seq_length" in sig.parameters:
-        trainer_kwargs["max_seq_length"] = cfg.max_len
-    if "dataset_text_field" in sig.parameters:
-        trainer_kwargs["dataset_text_field"] = "text"
-
-    trainer = SFTTrainer(**trainer_kwargs)
     trainer.train()
-    trainer.model.save_pretrained(cfg.output_dir)
+    model.save_pretrained(cfg.output_dir)
     tokenizer.save_pretrained(cfg.output_dir)
 
 
