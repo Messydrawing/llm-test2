@@ -5,6 +5,7 @@ import argparse, json, pathlib, sys
 from collections import Counter
 from datasets import Dataset
 
+
 def normalize_label(lab):
     """return uniform str label or None if invalid"""
     # 原本已是非空字符串
@@ -13,11 +14,19 @@ def normalize_label(lab):
 
     # 字典：必须含有 prediction / analysis / advice 任一键
     if isinstance(lab, dict):
-        if any(isinstance(lab.get(k), str) and lab[k].strip()
-               for k in ("prediction", "analysis", "advice")):
-            return json.dumps(lab, ensure_ascii=False)
+        has_main = any(
+            isinstance(lab.get(k), str) and lab[k].strip()
+            for k in ("prediction", "analysis", "advice")
+        )
+        if has_main:
+            return (
+                lab
+                if "reasoning" in lab
+                else json.dumps(lab, ensure_ascii=False)
+            )
 
     return None  # 其它类型无效
+
 
 def main(inp: pathlib.Path, out: pathlib.Path):
     stats = Counter()
@@ -34,11 +43,14 @@ def main(inp: pathlib.Path, out: pathlib.Path):
             continue
 
         prompt = rec.get("prompt", "").strip()
-        label  = normalize_label(rec.get("label"))
+        label = normalize_label(rec.get("label"))
 
         if prompt and label:
-            good.append(json.dumps({"prompt": prompt, "label": label},
-                                   ensure_ascii=False))
+            good.append(
+                json.dumps(
+                    {"prompt": prompt, "label": label}, ensure_ascii=False
+                )
+            )
             stats["kept"] += 1
         else:
             stats["bad_schema"] += 1
@@ -54,13 +66,18 @@ def main(inp: pathlib.Path, out: pathlib.Path):
     for k, v in stats.items():
         if k != "kept":
             print(f"  {k:12}: {v}")
-    print("  kept        :", stats['kept'])
+    print("  kept        :", stats["kept"])
+
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("input", type=pathlib.Path)
-    p.add_argument("-o", "--output", type=pathlib.Path,
-                   help="cleaned file path (default cleaned_<input>.jsonl)")
+    p.add_argument(
+        "-o",
+        "--output",
+        type=pathlib.Path,
+        help="cleaned file path (default cleaned_<input>.jsonl)",
+    )
     args = p.parse_args()
 
     inp = args.input.resolve()
