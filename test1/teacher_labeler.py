@@ -20,11 +20,13 @@ def label_samples(
     labeled: list[dict[str, Any]] = []
     with path.open("w", encoding="utf-8") as f:
         for prompt in prompts:
-            answer = call_teacher(prompt)["content"]
+            ans = call_teacher(prompt)
             try:
-                label = json.loads(answer)
+                label = json.loads(ans["content"])
+                if ans["reasoning"]:
+                    label["reasoning"] = ans["reasoning"]
             except json.JSONDecodeError:
-                label = {"raw": answer}
+                label = {"raw": ans["content"], "reasoning": ans["reasoning"]}
             record = {"prompt": prompt, "label": label}
             labeled.append(record)
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
