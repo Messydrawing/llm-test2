@@ -20,7 +20,7 @@ def label_samples(
     labeled: list[dict[str, Any]] = []
     with path.open("w", encoding="utf-8") as f:
         for prompt in prompts:
-            answer = call_teacher(prompt)
+            answer = call_teacher(prompt)["content"]
             try:
                 label = json.loads(answer)
             except json.JSONDecodeError:

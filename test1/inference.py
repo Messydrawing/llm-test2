@@ -14,12 +14,19 @@ from transformers.utils import logging as hf_logging
 
 # ─── 静音 Transformers 的 INFO/WARNING ───────────────────────────────────
 hf_logging.set_verbosity_error()
-warnings.filterwarnings("ignore", message=r"^Caching is incompatible with gradient checkpointing")
+warnings.filterwarnings(
+    "ignore", message=r"^Caching is incompatible with gradient checkpointing"
+)
 
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from transformers import (
+    AutoTokenizer,
+    AutoModelForCausalLM,
+    BitsAndBytesConfig,
+)
 
 from .config import STOCK_CODES, SUMMARY_DAYS
 from .data_loader import EastMoneyAPI
+
 
 # ╭───────────────────────────────────────────────╮
 # │                 ⬇ 数据辅助函数                │
@@ -42,19 +49,25 @@ def summarize_stock(question: str, days: int = SUMMARY_DAYS) -> str:
 # ╰───────────────────────────────────────────────╯
 ARK_API_KEY = os.getenv("ARK_API_KEY", "...此处填充火山引擎的api...")
 
-def call_teacher(prompt: str) -> str:
+
+def call_teacher(prompt: str) -> dict[str, str]:
+    """Call the remote teacher model and return its answer content and reasoning."""
     if not ARK_API_KEY:
-        return "[missing ARK_API_KEY]"
+        return {"content": "[missing ARK_API_KEY]", "reasoning": ""}
     try:
         from volcenginesdkarkruntime import Ark
+
         client = Ark(api_key=ARK_API_KEY)
         resp = client.chat.completions.create(
             model="deepseek-r1-250528",
             messages=[{"role": "user", "content": prompt}],
         )
-        return resp.choices[0].message.content.strip()
+        msg = resp.choices[0].message
+        content = msg.content.strip()
+        reasoning = getattr(msg, "reasoning_content", "").strip()
+        return {"content": content, "reasoning": reasoning}
     except Exception as e:  # pragma: no cover - network
-        return f"[teacher model error: {e}]"
+        return {"content": f"[teacher model error: {e}]", "reasoning": ""}
 
 
 # ╭───────────────────────────────────────────────╮
@@ -67,7 +80,9 @@ def load_student(model_name: str = "Qwen/Qwen1.5-7B"):
         bnb_4bit_use_double_quant=True,
         bnb_4bit_compute_dtype=torch.float16,
     )
-    tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_name, trust_remote_code=True
+    )
     tokenizer.pad_token = tokenizer.eos_token
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
@@ -79,7 +94,9 @@ def load_student(model_name: str = "Qwen/Qwen1.5-7B"):
     return tokenizer, model.eval()
 
 
-def call_student(tokenizer, model, prompt: str, max_new_tokens: int = 256) -> str:
+def call_student(
+    tokenizer, model, prompt: str, max_new_tokens: int = 256
+) -> str:
     inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
     out = model.generate(
         **inputs,
@@ -97,7 +114,7 @@ def call_student(tokenizer, model, prompt: str, max_new_tokens: int = 256) -> st
 # ╭───────────────────────────────────────────────╮
 # │                  ⬇ 主流程                     │
 # ╰───────────────────────────────────────────────╯
-def run(question: str, model_path: str | None = None) -> dict[str, str]:
+def run(question: str, model_path: str | None = None) -> dict[str, object]:
     """拼 Prompt → 调 teacher & student → 返回 dict 结果"""
     prompt = question + "\n" + summarize_stock(question)
     Path("prompt.txt").write_text(prompt, encoding="utf-8")
@@ -107,21 +124,33 @@ def run(question: str, model_path: str | None = None) -> dict[str, str]:
     tok, mdl = load_student(model_path or "SUFE-AIFLM-Lab/Fin-R1")
     student_answer = call_student(tok, mdl, prompt)
 
-    return {"prompt": prompt, "teacher": teacher_answer, "student": student_answer}
+    return {
+        "prompt": prompt,
+        "teacher": teacher_answer,
+        "student": student_answer,
+    }
 
 
 # ╭───────────────────────────────────────────────╮
 # │                    CLI                        │
 # ╰───────────────────────────────────────────────╯
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Compare teacher & student answer")
+    ap = argparse.ArgumentParser(
+        description="Compare teacher & student answer"
+    )
     ap.add_argument("question", help="Financial question in Chinese")
-    ap.add_argument("--student", default="SUFE-AIFLM-Lab/Fin-R1", help="Student model or local LoRA dir")
+    ap.add_argument(
+        "--student",
+        default="SUFE-AIFLM-Lab/Fin-R1",
+        help="Student model or local LoRA dir",
+    )
     args = ap.parse_args()
 
     res = run(args.question, model_path=args.student)
     print("【Prompt】\n" + res["prompt"])
-    print("\n【教师模型 DeepSeek‑R1】\n" + res["teacher"])
+    print("\n【教师模型 DeepSeek‑R1】\n" + res["teacher"]["content"])
+    if res["teacher"].get("reasoning"):
+        print("\n【教师模型推理】\n" + res["teacher"]["reasoning"])
     print("\n【学生模型】\n" + res["student"])
 
 
