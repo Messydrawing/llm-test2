@@ -147,9 +147,9 @@ def main() -> None:
 
     res = run(args.question, model_path=args.student)
     print("【Prompt】\n" + res["prompt"])
-    print("\n【教师模型 DeepSeek‑R1】\n" + res["teacher"]["content"])
     if res["teacher"].get("reasoning"):
-        print("\n【教师模型推理】\n" + res["teacher"]["reasoning"])
+        print("\n【教师思维链】\n" + res["teacher"]["reasoning"])
+    print("\n【教师模型 DeepSeek‑R1】\n" + res["teacher"]["content"])
     print("\n【学生模型】\n" + res["student"])
 
 
