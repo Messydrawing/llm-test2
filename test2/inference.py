@@ -47,13 +47,12 @@ def summarize_stock(question: str, days: int = SUMMARY_DAYS) -> str:
 # ╭───────────────────────────────────────────────╮
 # │           ⬇ 可选 — 远程教师模型调用            │
 # ╰───────────────────────────────────────────────╯
-ARK_API_KEY = os.getenv("ARK_API_KEY", "...此处填充火山引擎的api...")
+ARK_API_KEY = os.getenv("438e9897-eb23-4d1d-be81-06c59580275a")
 
 
-def call_teacher(prompt: str) -> dict[str, str]:
-    """Call the remote teacher model and return its answer and reasoning."""
+def call_teacher(prompt: str) -> str:
     if not ARK_API_KEY:
-        return {"content": "[missing ARK_API_KEY]", "reasoning": ""}
+        return "[missing ARK_API_KEY]"
     try:
         from volcenginesdkarkruntime import Ark
 
@@ -62,12 +61,9 @@ def call_teacher(prompt: str) -> dict[str, str]:
             model="deepseek-r1-250528",
             messages=[{"role": "user", "content": prompt}],
         )
-        msg = resp.choices[0].message
-        content = msg.content.strip()
-        reasoning = getattr(msg, "reasoning_content", "").strip()
-        return {"content": content, "reasoning": reasoning}
+        return resp.choices[0].message.content.strip()
     except Exception as e:  # pragma: no cover - network
-        return {"content": f"[teacher model error: {e}]", "reasoning": ""}
+        return f"[teacher model error: {e}]"
 
 
 # ╭───────────────────────────────────────────────╮
@@ -113,7 +109,7 @@ def call_student(
 # ╭───────────────────────────────────────────────╮
 # │                  ⬇ 主流程                     │
 # ╰───────────────────────────────────────────────╯
-def run(question: str, model_path: str | None = None) -> dict[str, object]:
+def run(question: str, model_path: str | None = None) -> dict[str, str]:
     """拼 Prompt → 调 teacher & student → 返回 dict 结果"""
     prompt = question + "\n" + summarize_stock(question)
     Path("prompt.txt").write_text(prompt + "\n\n### 答案：", encoding="utf-8")
@@ -147,9 +143,7 @@ def main() -> None:
 
     res = run(args.question, model_path=args.student)
     print("【Prompt】\n" + res["prompt"])
-    if res["teacher"].get("reasoning"):
-        print("\n【教师思维链】\n" + res["teacher"]["reasoning"])
-    print("\n【教师模型 DeepSeek‑R1】\n" + res["teacher"]["content"])
+    print("\n【教师模型 DeepSeek‑R1】\n" + res["teacher"])
     print("\n【学生模型】\n" + res["student"])
 
 
