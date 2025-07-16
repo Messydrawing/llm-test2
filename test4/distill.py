@@ -42,6 +42,7 @@ def run_pipeline(
     skip_teacher: bool,
     overwrite: bool,
     rope_factor: float,
+    balance: bool,
 ) -> None:
 
     # 1) 构造数据集
@@ -54,6 +55,7 @@ def run_pipeline(
         val_ratio=val_ratio,
         tokenizer=None,
         max_tokens=max_tokens,
+        balance_classes=balance,
     )
 
     # 2) 决定是否需要调用教师
@@ -116,7 +118,14 @@ if __name__ == "__main__":
     ap.add_argument("--stock", help="仅处理指定股票代码")
     ap.add_argument("--skip-teacher", action="store_true", help="跳过教师标注")
     ap.add_argument("--overwrite", action="store_true", help="覆盖已存在文件")
-    ap.add_argument("--rope-factor", type=float, default=1.0, help="RoPE 缩放因子")
+    ap.add_argument(
+        "--rope-factor", type=float, default=1.0, help="RoPE 缩放因子"
+    )
+    ap.add_argument(
+        "--no-balance",
+        action="store_true",
+        help="不均衡抽样，不按涨跌平衡截取",
+    )
     args = ap.parse_args()
 
     run_pipeline(
@@ -129,4 +138,5 @@ if __name__ == "__main__":
         skip_teacher=args.skip_teacher,
         overwrite=args.overwrite,
         rope_factor=args.rope_factor,
+        balance=not args.no_balance,
     )

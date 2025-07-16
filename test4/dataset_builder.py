@@ -78,8 +78,14 @@ def build_dataset(
     seed: int | None = None,
     tokenizer=None,
     max_tokens: int = 1024,
+    balance_classes: bool = True,
 ) -> Tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Build train/validation datasets from K-line data using sliding windows."""
+    """Build train/validation datasets from K-line data using sliding windows.
+
+    ``windows_per_stock`` controls how many random windows to keep per stock. If
+    ``balance_classes`` is ``True`` (default) the three categories are
+    downsampled to equal size; otherwise all sampled windows are retained.
+    """
     from .config import STOCK_CODES
 
     codes = list(stock_codes) if stock_codes else list(STOCK_CODES)
@@ -131,6 +137,7 @@ def build_dataset(
         n = len(df)
         if n < window:
             continue
+        windows_cat: list[tuple[str, dict[str, Any]]] = []
         for i in range(n - window + 1):
             # Skip window if any day has volume=0 or daily change beyond ±20%
             if (
@@ -163,6 +170,10 @@ def build_dataset(
                 category = "stable"
             prompt = _make_prompt(win)
             prompt["stock_code"] = code
+            windows_cat.append((category, prompt))
+
+        rng.shuffle(windows_cat)
+        for category, prompt in windows_cat[:windows_per_stock]:
             # --- Trim prompt to max_tokens if necessary ---
             if tokenizer:
                 text = format_prompt(prompt)
@@ -180,7 +191,7 @@ def build_dataset(
             else:
                 stable_samples.append(prompt)
     # --- Balance classes by downsampling ---
-    if up_samples and down_samples and stable_samples:
+    if balance_classes and up_samples and down_samples and stable_samples:
         min_count = min(
             len(up_samples), len(down_samples), len(stable_samples)
         )
