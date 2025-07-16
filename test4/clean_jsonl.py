@@ -7,25 +7,19 @@ from datasets import Dataset
 
 
 def normalize_label(lab):
-    """return uniform str label or None if invalid"""
-    # 原本已是非空字符串
+    """Return JSON string label or ``None`` if invalid."""
+
     if isinstance(lab, str) and lab.strip():
         return lab.strip()
 
-    # 字典：必须含有 prediction / analysis / advice 任一键
     if isinstance(lab, dict):
-        has_main = any(
-            isinstance(lab.get(k), str) and lab[k].strip()
-            for k in ("prediction", "analysis", "advice")
-        )
-        if has_main:
-            return (
-                lab
-                if "reasoning" in lab
-                else json.dumps(lab, ensure_ascii=False)
-            )
+        lab["prediction"] = str(lab.get("prediction", ""))
+        lab["analysis"] = str(lab.get("analysis", ""))
+        lab["advice"] = str(lab.get("advice", ""))
+        if any(lab.values()):
+            return json.dumps(lab, ensure_ascii=False, sort_keys=True)
 
-    return None  # 其它类型无效
+    return None
 
 
 def main(inp: pathlib.Path, out: pathlib.Path):

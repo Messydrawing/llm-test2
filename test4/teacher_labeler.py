@@ -12,9 +12,13 @@ def label_samples(
 ) -> list[dict[str, Any]]:
     """Label ``prompts`` using the teacher model.
 
-    Each prompt is sent to :func:`call_teacher` and the JSON response is
-    collected. Labeled records are written to ``output_file`` in JSON lines
-    format and also returned.
+    Each prompt is sent to :func:`call_teacher`. The returned text is parsed
+    as JSON if possible and validated to ensure it contains ``prediction``,
+    ``analysis`` and ``advice`` fields. Missing fields are filled with empty
+    strings and all values are coerced to ``str``.
+
+    Cleaned records are written to ``output_file`` in JSON Lines format and a
+    list of them is returned.
     """
     path = Path(output_file)
     labeled: list[dict[str, Any]] = []
@@ -26,8 +30,18 @@ def label_samples(
                 label = json.loads(answer)
             except (TypeError, json.JSONDecodeError):
                 label = {"raw": answer}
+
+            if not isinstance(label, dict):
+                label = {"raw": str(label)}
+
+            # ensure required fields exist and are strings
+            label["prediction"] = str(label.get("prediction", ""))
+            label["analysis"] = str(label.get("analysis", ""))
+            label["advice"] = str(label.get("advice", ""))
+
             if isinstance(ans, dict) and ans.get("reasoning"):
-                label["reasoning"] = ans["reasoning"]
+                label["reasoning"] = str(ans["reasoning"])
+
             record = {"prompt": prompt, "label": label}
             labeled.append(record)
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
