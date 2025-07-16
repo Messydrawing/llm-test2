@@ -16,7 +16,9 @@ def normalize_label(lab):
         lab["prediction"] = str(lab.get("prediction", ""))
         lab["analysis"] = str(lab.get("analysis", ""))
         lab["advice"] = str(lab.get("advice", ""))
-        if any(lab.values()):
+
+        # require at least one non-empty main field
+        if any(lab[k] for k in ("prediction", "analysis", "advice")):
             return json.dumps(lab, ensure_ascii=False, sort_keys=True)
 
     return None
