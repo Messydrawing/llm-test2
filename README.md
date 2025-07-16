@@ -242,3 +242,11 @@ After fine-tuning:  bleu: 0.4519, rougeL: 0.5123, embed: 0.8921
   * Huggingface Hub：`huggingface_hub` 库，用于模型自动下载（`snapshot_download` 函数）。
 
 请根据上述列表配置环境并安装相应依赖（通过 `pip install transformers peft bitsandbytes nltk rouge_score sentence-transformers pandas requests matplotlib huggingface_hub` 等方式）。配置正确的CUDA环境和兼容的库版本将确保整个蒸馏流程的顺利运行。完成环境配置后，即可按照上述使用指令运行项目，训练出适用于金融领域的精简语言模型并进行评估调试。
+
+## test4：长序列 SFT 改进
+
+`test4` 在 `test2` 的基础上加入了长序列微调逻辑。训练脚本 `test4/train_lora.py` 新增
+`--rope-factor` 参数用于设置 RoPE 缩放因子，并在加载模型时自动更新
+`rope_scaling` 与 `max_position_embeddings`，从而将 Qwen‑1.5‑7B 的上下文长度扩展到
+4K 或 8K。推理脚本 `test4/inference.py` 也默认使用 `max_length=4096` 并限制生成不超过
+300 token，以验证长窗口下的效果。
