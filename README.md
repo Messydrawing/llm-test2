@@ -243,6 +243,32 @@ After fine-tuning:  bleu: 0.4519, rougeL: 0.5123, embed: 0.8921
 
 请根据上述列表配置环境并安装相应依赖（通过 `pip install transformers peft bitsandbytes nltk rouge_score sentence-transformers pandas requests matplotlib huggingface_hub` 等方式）。配置正确的CUDA环境和兼容的库版本将确保整个蒸馏流程的顺利运行。完成环境配置后，即可按照上述使用指令运行项目，训练出适用于金融领域的精简语言模型并进行评估调试。
 
+
+## test1：基础蒸馏逻辑
+
+`test1`实现了基础的大模型蒸馏逻辑。整理了一套完整的数据处理、模型蒸馏、调用蒸馏前后的模型、对模型的BLEU、ROUGE-L、Embed展开测评。
+数据来源于东财（eastmoney）API，获取股票的K线、开盘、收盘、当日最高、当日最低数据，以及自行计算的MA5、MA10、MCAD数据；
+教师模型为deepseek-r1，调用火山引擎API获取答案；
+基座模型为Qwen/Qwen1.5-7B；
+
+
+## test2：SFTT微调方案
+
+在`test1`的数据处理和教师模型调用的基础上实现了SFTT微调方案，具体微调原理和效用可参照`https://github.com/xgocn/s1?tab=readme-ov-file`。
+教师模型获取方面，新增教师模型reasoning语段，通过API获取教师模型的推理链内容并提交给学生模型进行微调参考。
+此版方案通过测评可以发现，学生模型的Embed得分大幅提升，即在语义理解方面取得了大幅进展。
+
+
+
+## test3：强化学习微调方案
+
+（暂定为废案）
+在`test2`既有方案的基础上添加了强化学习。
+具体逻辑为在进行SFTT微调后，利用强化学习对小模型的预测精准度展开微调。
+原计划为利用另一套prompt，要求小模型只输出“涨”“跌”，随后若预测精确则给予奖励，以此来训练。
+在实践过程中，发现存在一定的实践问题，实际分析过程中，针对股票的涨跌有时无法用单字涨跌来形容，进行强化学习后，模型的语言表达能力明显下降。
+后期预期于test5或test6做方案修改。尝试为教师模型加上“预测正确”“预测错误”的标签来尝试能否使模型的性能发生提升。
+
 ## test4：长序列 SFT 改进
 
 `test4` 在 `test2` 的基础上加入了长序列微调逻辑。训练脚本 `test4/train_lora.py` 新增
