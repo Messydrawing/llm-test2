@@ -245,7 +245,7 @@ After fine-tuning:  bleu: 0.4519, rougeL: 0.5123, embed: 0.8921
 
 
 
-## test1：基础蒸馏逻辑（7月第一周）
+## test1：基础蒸馏逻辑（7月第1周）
 
 `test1`实现了基础的大模型蒸馏逻辑。整理了一套完整的数据处理、模型蒸馏、调用蒸馏前后的模型、对模型的BLEU、ROUGE-L、Embed展开测评。
 数据来源于东财（eastmoney）API，获取股票的K线、开盘、收盘、当日最高、当日最低数据，以及自行计算的MA5、MA10、MCAD数据；
@@ -253,7 +253,7 @@ After fine-tuning:  bleu: 0.4519, rougeL: 0.5123, embed: 0.8921
 基座模型为Qwen/Qwen1.5-7B；
 
 
-## test2：SFTT微调方案（7月第二~三周）
+## test2：SFTT微调方案（7月第2~3周）
 
 在`test1`的数据处理和教师模型调用的基础上实现了SFTT微调方案，具体微调原理和效用可参照`https://github.com/xgocn/s1?tab=readme-ov-file`。
 教师模型获取方面，新增教师模型reasoning语段，通过API获取教师模型的推理链内容并提交给学生模型进行微调参考。
@@ -269,7 +269,7 @@ After fine-tuning:  bleu: 0.4519, rougeL: 0.5123, embed: 0.8921
 在实践过程中，发现存在一定的实践问题，实际分析过程中，针对股票的涨跌有时无法用单字涨跌来形容，进行强化学习后，模型的语言表达能力明显下降。
 后期预期于test5或test6做方案修改。尝试为教师模型加上“预测正确”“预测错误”的标签来尝试能否使模型的性能发生提升。
 
-## test4：长序列 SFT 改进（7月第三周）
+## test4：长序列 SFT 改进（7月第3周）
 
 `test4` 在 `test2` 的基础上加入了长序列微调逻辑。训练脚本 `test4/train_lora.py` 新增
 `--rope-factor` 参数用于设置 RoPE 缩放因子，并在加载模型时自动更新
@@ -277,6 +277,6 @@ After fine-tuning:  bleu: 0.4519, rougeL: 0.5123, embed: 0.8921
 4K 或 8K。推理脚本 `test4/inference.py` 也默认使用 `max_length=4096` 并限制生成不超过
 300 token，以验证长窗口下的效果。
 
-## test5：引入GraphRAG（7月第四周，尚未完成）
+## test5：引入GraphRAG（7月第4周，尚未完成）
 
 `test5` 在 `test2` 的基础上引入了GraphRAG（test4长文本需要的经费和时间成本过高暂时不叠加进来）。
