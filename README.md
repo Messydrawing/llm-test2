@@ -277,6 +277,8 @@ After fine-tuning:  bleu: 0.4519, rougeL: 0.5123, embed: 0.8921
 4K 或 8K。推理脚本 `test4/inference.py` 也默认使用 `max_length=4096` 并限制生成不超过
 300 token，以验证长窗口下的效果。
 
-## test5：引入GraphRAG（7月第4周，尚未完成）
+## test5：引入GraphRAG（7月第4周）
 
-`test5` 在 `test2` 的基础上引入了GraphRAG（test4长文本需要的经费和时间成本过高暂时不叠加进来）。
+`test5` 在 `test2` 的基础上集成了 [GraphRAG](https://pypi.org/project/graphrag/)\
+用于检索增强。脚本 `test5/inference.py` 通过调用 GraphRAG 的 `run_global_search`\
+接口获取查询结果，将其拼接到股票行情提示后再交给教师与学生模型处理。
