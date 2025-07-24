@@ -26,7 +26,9 @@ def _clean(src: str | Path) -> str:
     if not src.exists():
         sys.exit(f"[distill] ❌ 找不到 {src}")
     if src.name.endswith("-teacher.jsonl"):
-        dst = src.with_name(src.name.replace("-teacher.jsonl", "-cleaned.jsonl"))
+        dst = src.with_name(
+            src.name.replace("-teacher.jsonl", "-cleaned.jsonl")
+        )
     else:
         dst = src.with_name(f"cleaned_{src.name}")
     print(f"[distill] 清洗 {src.name} → {dst.name}")
@@ -97,30 +99,38 @@ def run_pipeline(
     else:
         print("[distill] ▶ 跳过教师标注，使用现有 JSONL")
 
-    # 4) 清洗各教师输出（仅 DeepSeek 结果用于训练）
-    train_jsonl = _clean("D-teacher.jsonl")
-    _clean("G-teacher.jsonl")
-    _clean("Q-teacher.jsonl")
+    # 4) 清洗各教师输出
+    train_jsonl_D = _clean("D-teacher.jsonl")
+    train_jsonl_G = _clean("G-teacher.jsonl")
+    train_jsonl_Q = _clean("Q-teacher.jsonl")
     val_jsonl = None
 
-    # 5) LoRA 训练
-    lora_cfg = train_lora.TrainConfig(
-        data_path=train_jsonl,
-        eval_path=val_jsonl,
-        output_dir=output_dir,
-        max_len=max_len,
-        max_steps=200,
-    )
-    train_lora.main(lora_cfg)
+    # 5) LoRA 训练分别使用三份数据集
+    base_out = Path(output_dir)
+    for tag, train_jsonl in {
+        "D": train_jsonl_D,
+        "G": train_jsonl_G,
+        "Q": train_jsonl_Q,
+    }.items():
+        out_dir = base_out / f"lora_{tag}"
+        lora_cfg = train_lora.TrainConfig(
+            data_path=train_jsonl,
+            eval_path=val_jsonl,
+            output_dir=str(out_dir),
+            max_len=max_len,
+            max_steps=200,
+        )
+        train_lora.main(lora_cfg)
 
-    # 6) 评估
-    prompts, refs = evaluate.load_dataset(val_jsonl or train_jsonl)
-    metrics = evaluate.evaluate_model(output_dir, prompts, refs)
-    print("\nValidation metrics:")
-    print(json.dumps(metrics, indent=2, ensure_ascii=False))
-    Path(output_dir, "metrics.json").write_text(
-        json.dumps(metrics, ensure_ascii=False)
-    )
+        # 6) 评估
+        prompts, refs = evaluate.load_dataset(val_jsonl or train_jsonl)
+        metrics = evaluate.evaluate_model(str(out_dir), prompts, refs)
+        print(f"\nValidation metrics ({tag}):")
+        print(json.dumps(metrics, indent=2, ensure_ascii=False))
+        out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / "metrics.json").write_text(
+            json.dumps(metrics, ensure_ascii=False)
+        )
 
 
 # ╭────────────────────────── CLI ───────────────────────────╮
