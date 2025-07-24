@@ -15,6 +15,7 @@ from . import (
     teacher_labeler,
     train_lora,
 )
+from .inference import call_teacher as call_deepseek, call_gemini, call_qwen
 from .clean_jsonl import main as clean_jsonl_once
 
 
@@ -55,31 +56,47 @@ def run_pipeline(
         max_tokens=max_tokens,
     )
 
-    # 2) 决定是否需要调用教师
+    # Write all prompts to question.jsonl
+    prompts_all = [
+        dataset_builder.format_prompt(s) for s in train_set + val_set
+    ]
+    with open("question.jsonl", "w", encoding="utf-8") as f:
+        for p in prompts_all:
+            f.write(json.dumps({"prompt": p}, ensure_ascii=False) + "\n")
+
+    # 2) Decide whether to call teachers
     need_label = True
     if skip_teacher and not overwrite:
-        need_label = not Path("labeled_data.jsonl").exists()
-        if val_ratio:
-            need_label |= not Path("val_labeled_data.jsonl").exists()
+        need_label = not (
+            Path("D-teacher.jsonl").exists()
+            and Path("G-teacher.jsonl").exists()
+            and Path("Q-teacher.jsonl").exists()
+        )
 
-    # 3) 教师标注
+    # 3) Teacher labeling for multiple models
     if need_label:
         print("[distill] ▶ 教师模型标注 …")
         teacher_labeler.label_samples(
-            [dataset_builder.format_prompt(s) for s in train_set],
-            "labeled_data.jsonl",
+            prompts_all,
+            "D-teacher.jsonl",
+            call_teacher=call_deepseek,
         )
-        if val_ratio:
-            teacher_labeler.label_samples(
-                [dataset_builder.format_prompt(s) for s in val_set],
-                "val_labeled_data.jsonl",
-            )
+        teacher_labeler.label_samples(
+            prompts_all,
+            "G-teacher.jsonl",
+            call_teacher=call_gemini,
+        )
+        teacher_labeler.label_samples(
+            prompts_all,
+            "Q-teacher.jsonl",
+            call_teacher=call_qwen,
+        )
     else:
         print("[distill] ▶ 跳过教师标注，使用现有 JSONL")
 
-    # 4) 清洗
-    train_jsonl = _clean("labeled_data.jsonl")
-    val_jsonl = _clean("val_labeled_data.jsonl") if val_ratio else None
+    # 4) 清洗（仅 DeepSeek 结果用于训练）
+    train_jsonl = _clean("D-teacher.jsonl")
+    val_jsonl = None
 
     # 5) LoRA 训练
     lora_cfg = train_lora.TrainConfig(
