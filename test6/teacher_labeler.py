@@ -4,11 +4,14 @@ import json
 from pathlib import Path
 from typing import Iterable, Any
 
-from .inference import call_teacher
+from .inference import call_teacher as _call_teacher
 
 
 def label_samples(
-    prompts: Iterable[str], output_file: str | Path = "labeled_data.jsonl"
+    prompts: Iterable[str],
+    output_file: str | Path = "labeled_data.jsonl",
+    *,
+    call_teacher=_call_teacher,
 ) -> list[dict[str, Any]]:
     """Label ``prompts`` using the teacher model.
 
