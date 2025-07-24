@@ -49,6 +49,9 @@ def summarize_stock(question: str, days: int = SUMMARY_DAYS) -> str:
 # ╰───────────────────────────────────────────────╯
 # Name of the env variable storing the ArkRuntime API key
 ARK_API_KEY = os.getenv("ARK_API_KEY", "")
+# API keys for optional remote models
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", os.getenv("GOOGLE_API_KEY", ""))
+DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
 
 
 def call_teacher(prompt: str) -> dict[str, str]:
@@ -69,6 +72,45 @@ def call_teacher(prompt: str) -> dict[str, str]:
         return {"content": content, "reasoning": reasoning}
     except Exception as e:  # pragma: no cover - network
         return {"content": f"[teacher model error: {e}]", "reasoning": ""}
+
+
+def call_gemini(prompt: str) -> dict[str, str]:
+    """Call the Gemini model hosted by Google."""
+    if not GEMINI_API_KEY:
+        return {"content": "[missing GEMINI_API_KEY]", "reasoning": ""}
+    try:
+        import google.genai as genai
+
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        resp = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+        )
+        content = getattr(resp, "text", str(resp)).strip()
+        return {"content": content, "reasoning": ""}
+    except Exception as e:  # pragma: no cover - network
+        return {"content": f"[gemini model error: {e}]", "reasoning": ""}
+
+
+def call_qwen(prompt: str) -> dict[str, str]:
+    """Call the Qwen model via DashScope's OpenAI-compatible endpoint."""
+    if not DASHSCOPE_API_KEY:
+        return {"content": "[missing DASHSCOPE_API_KEY]", "reasoning": ""}
+    try:
+        from openai import OpenAI
+
+        client = OpenAI(
+            api_key=DASHSCOPE_API_KEY,
+            base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+        )
+        resp = client.chat.completions.create(
+            model="qwen-max",
+            messages=[{"role": "user", "content": prompt}],
+        )
+        content = resp.choices[0].message.content.strip()
+        return {"content": content, "reasoning": ""}
+    except Exception as e:  # pragma: no cover - network
+        return {"content": f"[qwen model error: {e}]", "reasoning": ""}
 
 
 # ╭───────────────────────────────────────────────╮
