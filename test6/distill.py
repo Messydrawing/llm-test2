@@ -25,7 +25,10 @@ def _clean(src: str | Path) -> str:
     src = Path(src)
     if not src.exists():
         sys.exit(f"[distill] ❌ 找不到 {src}")
-    dst = src.with_name(f"cleaned_{src.name}")
+    if src.name.endswith("-teacher.jsonl"):
+        dst = src.with_name(src.name.replace("-teacher.jsonl", "-cleaned.jsonl"))
+    else:
+        dst = src.with_name(f"cleaned_{src.name}")
     print(f"[distill] 清洗 {src.name} → {dst.name}")
     clean_jsonl_once(src, dst)
     return str(dst)
@@ -94,8 +97,10 @@ def run_pipeline(
     else:
         print("[distill] ▶ 跳过教师标注，使用现有 JSONL")
 
-    # 4) 清洗（仅 DeepSeek 结果用于训练）
+    # 4) 清洗各教师输出（仅 DeepSeek 结果用于训练）
     train_jsonl = _clean("D-teacher.jsonl")
+    _clean("G-teacher.jsonl")
+    _clean("Q-teacher.jsonl")
     val_jsonl = None
 
     # 5) LoRA 训练
