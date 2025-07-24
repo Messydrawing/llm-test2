@@ -19,11 +19,10 @@ def normalize_label(lab):
             for k in ("prediction", "analysis", "advice")
         )
         if has_main:
-            return (
-                lab
-                if "reasoning" in lab
-                else json.dumps(lab, ensure_ascii=False)
-            )
+            if "reasoning" in lab:
+                if not (isinstance(lab["reasoning"], str) and lab["reasoning"].strip()):
+                    lab.pop("reasoning", None)
+            return json.dumps(lab, ensure_ascii=False)
 
     return None  # 其它类型无效
 
