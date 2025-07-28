@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import random
 from typing import Iterable
 
 from nltk.translate.bleu_score import SmoothingFunction, sentence_bleu
@@ -13,20 +15,41 @@ from sentence_transformers import SentenceTransformer, util
 from .inference import load_student, call_student
 
 
-def load_dataset(path: str) -> tuple[list[str], list[str]]:
+def load_dataset(
+    path: str,
+    *,
+    sample: int | None = None,
+    seed: int | None = None,
+) -> tuple[list[str], list[str]]:
+    """Return prompts and references from ``path``.
+
+    When ``sample`` is given, randomly select that many records using ``seed``.
+    """
     prompts: list[str] = []
     refs: list[str] = []
     with open(path, "r", encoding="utf-8") as f:
         for line in f:
             rec = json.loads(line)
             prompts.append(rec["prompt"])
-            label = rec.get("label", "")
+            label = (
+                rec.get("label")
+                or rec.get("answer")
+                or rec.get("reference")
+                or ""
+            )
             if isinstance(label, dict):
                 refs.append(
                     json.dumps(label, ensure_ascii=False, sort_keys=True)
                 )
             else:
                 refs.append(str(label))
+
+    if sample is not None and sample < len(prompts):
+        rng = random.Random(seed)
+        idxs = rng.sample(range(len(prompts)), sample)
+        prompts = [prompts[i] for i in idxs]
+        refs = [refs[i] for i in idxs]
+
     return prompts, refs
 
 
@@ -83,30 +106,35 @@ def evaluate_model(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Evaluate a fine-tuned model")
+    parser = argparse.ArgumentParser(description="Evaluate LoRA adapters")
     parser.add_argument(
-        "--data", default="labeled_data.jsonl", help="Labeled prompts"
+        "--questions", default="question.jsonl", help="Prompt dataset"
     )
+    parser.add_argument("--sample", type=int, default=20, help="Sample size")
+    parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
-        "--base-model", default="Qwen/Qwen1.5-0.5B", help="Base student model"
-    )
-    parser.add_argument(
-        "--tuned-model", required=True, help="Fine-tuned model path"
+        "--models-dir",
+        default="lora_adapter",
+        help="Directory containing lora_D/G/Q subfolders",
     )
     args = parser.parse_args()
 
-    prompts, refs = load_dataset(args.data)
+    prompts, refs = load_dataset(
+        args.questions, sample=args.sample, seed=args.seed
+    )
 
-    print("Generating predictions with base model...")
-    base_scores = evaluate_model(args.base_model, prompts, refs)
-    print("Generating predictions with tuned model...")
-    tuned_scores = evaluate_model(args.tuned_model, prompts, refs)
+    results: dict[str, dict[str, float]] = {}
+    for tag in ("D", "G", "Q"):
+        model_path = os.path.join(args.models_dir, f"lora_{tag}")
+        print(f"Evaluating {model_path} …")
+        results[tag] = evaluate_model(model_path, prompts, refs)
 
-    def fmt(d: dict[str, float]) -> str:
-        return ", ".join(f"{k}: {v:.4f}" for k, v in d.items())
-
-    print("Before fine-tuning:", fmt(base_scores))
-    print("After fine-tuning:", fmt(tuned_scores))
+    print(f"{'Model':<8}{'BLEU':>8}{'ROUGE-L':>10}{'Embed':>8}")
+    for tag in ("D", "G", "Q"):
+        sc = results[tag]
+        print(
+            f"{tag:<8}{sc['bleu']:>8.4f}{sc['rougeL']:>10.4f}{sc['embed']:>8.4f}"
+        )
 
 
 if __name__ == "__main__":  # pragma: no cover - CLI
