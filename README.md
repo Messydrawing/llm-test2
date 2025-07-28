@@ -282,3 +282,26 @@ After fine-tuning:  bleu: 0.4519, rougeL: 0.5123, embed: 0.8921
 `test5` 在 `test2` 的基础上集成了 [GraphRAG](https://pypi.org/project/graphrag/)\
 用于检索增强。脚本 `test5/inference.py` 通过调用 GraphRAG 的 `run_global_search`\
 接口获取查询结果，将其拼接到股票行情提示后再交给教师与学生模型处理。
+
+## test6：多教师模型蒸馏（7月第5周）
+
+`test6` 在 `test4` 的长序列框架上进一步引入了多教师策略。管线脚本
+`test6/distill.py` 会分别调用 DeepSeek‑R1、Google Gemini 以及 DashScope 上的
+Qwen‑Max 三个教师模型，对同一批 Prompt 进行标注。三份标注数据清洗后用于训练
+`lora_D`、`lora_G`、`lora_Q` 三组 LoRA 适配器，并在验证集上分别评估蒸馏效果。
+
+运行本流程需预先设置以下环境变量，以保证可以访问对应的远程模型接口：
+
+- `GEMINI_API_KEY`：Google Gemini API 的访问密钥（也可使用 `GOOGLE_API_KEY`）。
+- `DASHSCOPE_API_KEY`：DashScope 平台调用 Qwen‑Max 模型所需的密钥。
+- `ARK_API_KEY`：火山引擎 DeepSeek‑R1 服务的 ArkRuntime 密钥。
+
+示例命令如下：
+
+```bash
+# 多教师管线，结果输出至 multi_lora/
+python -m test6.distill --windows 3 --val-ratio 0.2 --out multi_lora
+
+# 在生成的适配器上评估指标
+python -m test6.evaluate --questions question.jsonl --models-dir multi_lora
+```
