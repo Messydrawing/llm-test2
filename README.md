@@ -277,7 +277,7 @@ After fine-tuning:  bleu: 0.4519, rougeL: 0.5123, embed: 0.8921
 4K 或 8K。推理脚本 `test4/inference.py` 也默认使用 `max_length=4096` 并限制生成不超过
 300 token，以验证长窗口下的效果。
 
-## test5：引入GraphRAG（7月第4周）
+## test5：引入GraphRAG（7月第4周，考察fastgraphRAG是否可行）
 
 `test5` 在 `test2` 的基础上集成了 [GraphRAG](https://pypi.org/project/graphrag/)\
 用于检索增强。脚本 `test5/inference.py` 通过调用 GraphRAG 的 `run_global_search`\
@@ -305,3 +305,7 @@ python -m test6.distill --windows 3 --val-ratio 0.2 --out multi_lora
 # 在生成的适配器上评估指标
 python -m test6.evaluate --questions question.jsonl --models-dir multi_lora
 ```
+当前测试结果显示在权衡中文语境、预测精确度、模型微调效果、成本四方面的表现后，Qwen-Max表现最为突出。
+
+
+
