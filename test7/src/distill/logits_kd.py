@@ -10,4 +10,5 @@ def launch_logits_kd(config: Dict):
     :param config: 读取 configs/distill_logits.yaml
     调用 accelerate + DistillKit 的 distil_logits.py
     """
+    # TODO: 根据配置启动对数蒸馏训练
     raise NotImplementedError

@@ -17,7 +17,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    # 根据配置读取数据与模型输出，计算各类指标
+    # TODO: 根据配置读取数据与模型输出，计算各类指标
     raise NotImplementedError("需实现评测逻辑")
 
 

@@ -10,4 +10,5 @@ def fetch_hist(symbol: str, start_date: str, end_date: str, adjust: str="") -> p
     """
     返回包含 OHLCV 的 DataFrame, 列名与 parse_kline_json 对齐。
     """
+    # TODO: 调用 akshare 接口获取历史行情并返回 DataFrame
     raise NotImplementedError

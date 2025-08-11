@@ -12,4 +12,5 @@ def build_json_prefix_allowed_tokens_fn(tokenizer) -> Callable[[int, torch.Tenso
     返回可直接传入 model.generate(..., prefix_allowed_tokens_fn=fn) 的函数。
     需根据当前已生成内容决定下一步允许 token 集合。
     """
+    # TODO: 根据已生成的文本内容返回允许的 token 列表
     raise NotImplementedError

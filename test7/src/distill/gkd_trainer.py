@@ -12,4 +12,5 @@ def run_gkd(config: Dict):
       - seq_kd: 序列级 KD
     核心调用: TRL.GKDTrainer
     """
+    # TODO: 构造 GKDTrainer 并执行一轮 on-policy 蒸馏
     raise NotImplementedError

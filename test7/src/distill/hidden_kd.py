@@ -10,4 +10,5 @@ def launch_hidden_kd(config: Dict):
     :param config: 读取 configs/distill_hidden.yaml
     调用 accelerate + DistillKit 的 distil_hidden.py
     """
+    # TODO: 根据配置构造命令并启动隐藏态蒸馏
     raise NotImplementedError
