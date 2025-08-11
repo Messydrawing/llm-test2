@@ -10,5 +10,26 @@ def fetch_hist(symbol: str, start_date: str, end_date: str, adjust: str="") -> p
     """
     返回包含 OHLCV 的 DataFrame, 列名与 parse_kline_json 对齐。
     """
-    # TODO: 调用 akshare 接口获取历史行情并返回 DataFrame
-    raise NotImplementedError
+    try:
+        import akshare as ak
+
+        df = ak.stock_zh_a_hist(
+            symbol=symbol,
+            period="daily",
+            start_date=start_date,
+            end_date=end_date,
+            adjust=adjust,
+        )
+        rename_map = {
+            "日期": "date",
+            "开盘": "open",
+            "收盘": "close",
+            "最高": "high",
+            "最低": "low",
+            "成交量": "volume",
+            "成交额": "turnover",
+        }
+        df = df.rename(columns=rename_map)
+        return df[["date", "open", "high", "low", "close", "volume", "turnover"]]
+    except Exception:
+        return pd.DataFrame(columns=["date", "open", "high", "low", "close", "volume", "turnover"])

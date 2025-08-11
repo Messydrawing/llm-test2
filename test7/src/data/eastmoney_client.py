@@ -6,6 +6,8 @@
 """
 from typing import Dict, List, Literal, Tuple
 import datetime as dt
+import json
+import requests
 
 
 def to_secid(symbol: str) -> str:
@@ -17,8 +19,19 @@ def to_secid(symbol: str) -> str:
     :param symbol: 形如 '600519' 或带交易所前缀 'SH600519'/'SZ000001'
     :return: 'ex.code' 形式的 secid 字符串
     """
-    # TODO: 根据证券代码推断交易所并拼接成 secid
-    raise NotImplementedError
+    symbol = symbol.upper()
+    if symbol.startswith("SH") or symbol.startswith("SZ"):
+        code = symbol[-6:]
+        prefix = symbol[:2]
+    else:
+        code = symbol[-6:]
+        first = code[0]
+        if first in {"5", "6", "9"}:
+            prefix = "SH"
+        else:
+            prefix = "SZ"
+    exch = "1" if prefix == "SH" else "0"
+    return f"{exch}.{code}"
 
 
 def fetch_kline(
@@ -36,8 +49,19 @@ def fetch_kline(
     :param beg/end: 'YYYYMMDD' 字符串
     :return: 原始 JSON 字典
     """
-    # TODO: 构造请求参数并从东财接口获取 K 线数据
-    raise NotImplementedError
+    url = "https://push2his.eastmoney.com/api/qt/stock/kline/get"
+    params = {
+        "secid": secid,
+        "beg": beg,
+        "end": end,
+        "klt": klt,
+        "fqt": fqt,
+        "fields1": fields1,
+        "fields2": fields2,
+    }
+    resp = requests.get(url, params=params, timeout=timeout)
+    resp.raise_for_status()
+    return resp.json()
 
 
 def parse_kline_json(raw: Dict) -> List[Dict]:
@@ -47,5 +71,26 @@ def parse_kline_json(raw: Dict) -> List[Dict]:
       'close': float, 'volume': float, 'turnover': float, ...}, ...]
     注意 fields2 对应字段含义按 akshare/efinance 源码比对。
     """
-    # TODO: 解析返回 JSON 中的 kline 字段并转为列表字典格式
-    raise NotImplementedError
+    data = raw.get("data", {})
+    klines = data.get("klines", [])
+    result: List[Dict] = []
+    for item in klines:
+        parts = item.split(",")
+        if len(parts) < 7:
+            continue
+        date = parts[0]
+        open_, close, high, low = map(float, parts[1:5])
+        volume = float(parts[5])
+        turnover = float(parts[6])
+        result.append(
+            {
+                "date": date,
+                "open": open_,
+                "high": high,
+                "low": low,
+                "close": close,
+                "volume": volume,
+                "turnover": turnover,
+            }
+        )
+    return result

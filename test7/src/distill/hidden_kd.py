@@ -3,6 +3,7 @@
 支持: 层映射策略、MSE/Cosine 混合损失、BF16/FlashAttn/DeepSpeed。
 """
 from typing import Dict
+import subprocess
 
 
 def launch_hidden_kd(config: Dict):
@@ -10,5 +11,21 @@ def launch_hidden_kd(config: Dict):
     :param config: 读取 configs/distill_hidden.yaml
     调用 accelerate + DistillKit 的 distil_hidden.py
     """
-    # TODO: 根据配置构造命令并启动隐藏态蒸馏
-    raise NotImplementedError
+    cfg_path = config.get("config_path", "configs/distill_hidden.yaml")
+    cmd = [
+        "accelerate",
+        "launch",
+        "--config_file",
+        cfg_path,
+        config.get("script", "distil_hidden.py"),
+    ]
+    extra = config.get("extra_args") or []
+    if isinstance(extra, dict):
+        for k, v in extra.items():
+            cmd.extend([f"--{k}", str(v)])
+    elif isinstance(extra, list):
+        cmd.extend(map(str, extra))
+    try:
+        subprocess.run(cmd, check=True)
+    except FileNotFoundError:
+        print("accelerate not found, command would be:", " ".join(cmd))
