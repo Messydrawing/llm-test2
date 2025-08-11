@@ -1,0 +1,14 @@
+# 东财抓数/样本摘要配置
+market: "CN"               # 当前只做沪深
+symbols: ["600519","000001","002415"]  # 证券列表
+kline:
+  beg: "2024-01-01"        # YYYY-MM-DD -> 请求时转为 20240101
+  end: "2025-08-11"
+  klt: 101                 # 101=日K, 102=周K, 103=月K（东财约定）
+  fqt: 1                   # 复权方式: 0不复权,1前复权,2后复权
+  fields1: "f1,f2,f3,f4,f5,f6"
+  fields2: "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f116"
+summary:
+  window_days: 30
+  indicators: ["ret_30","volatility","ma_5_10_20","bias","volume_divergence","sr_levels"]
+save_dir: "data"

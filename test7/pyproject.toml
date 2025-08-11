@@ -1,0 +1,19 @@
+[project]
+name = "qwen32b-to-8b-distill"
+version = "0.1.0"
+description = "Qwen32B 到 8B 蒸馏项目骨架"
+authors = [ {name = "Your Name", email = "you@example.com"} ]
+requires-python = ">=3.9"
+
+[project.dependencies]
+torch = "*"
+transformers = "*"
+datasets = "*"
+accelerate = "*"
+deepspeed = "*"
+vllm = "*"
+trl = "*"
+pydantic = "*"
+tqdm = "*"
+rich = "*"
+ujson = "*"

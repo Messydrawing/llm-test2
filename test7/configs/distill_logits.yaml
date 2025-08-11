@@ -1,0 +1,16 @@
+teacher: "Qwen/Qwen2.5-32B-Instruct"
+student: "Qwen/Qwen2.5-7B-Instruct"
+precision: "bf16"
+flash_attention: true
+deepspeed: "configs/deepspeed_zero3.json"
+distill:
+  temperature: 2.0         # DistillKit 示例默认 2.0
+  alpha: 0.5               # KL(soft) vs CE(hard) 权重
+train:
+  epochs: 2
+  lr: 2.0e-5
+  grad_accum: 8
+  per_device_batch: 1
+  max_length: 4096
+data:
+  teacher_outputs: "data/teacher_outputs/train.pred.jsonl"   # 用老师 JSON 作为序列监督

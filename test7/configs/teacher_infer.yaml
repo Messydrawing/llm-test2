@@ -1,0 +1,15 @@
+model_name: "Qwen/Qwen2.5-32B-Instruct"   # HF 模型卡：Apache-2.0 许可
+engine: "vllm"                             # 使用 vLLM Offline Inference
+tensor_parallel_size: 2
+max_model_len: 32768
+generation:
+  temperature: 0.3
+  top_p: 0.9
+  max_new_tokens: 256
+  stop: ["\n\n"]
+data:
+  input_jsonl: "data/processed/train.jsonl"
+  output_jsonl: "data/teacher_outputs/train.pred.jsonl"
+  json_schema: "json_schema/teacher_output.schema.json"
+meta:
+  record_sampling: true   # 保存温度/种子等采样元数据

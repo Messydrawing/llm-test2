@@ -1,0 +1,18 @@
+# Python 常规忽略项
+__pycache__/
+*.py[cod]
+*.so
+
+# 虚拟环境
+.venv/
+.env
+
+# 数据与输出
+/data/raw/
+/data/processed/
+/data/teacher_outputs/
+/data/splits/
+
+# 其他
+*.log
+*.tmp
