@@ -1,0 +1,14 @@
+student: "Qwen/Qwen2.5-7B-Instruct"
+teacher: "Qwen/Qwen2.5-32B-Instruct"
+trainer: "TRL.GKDTrainer"
+policy_sampling:
+  lambda: 0.5                        # on-policy 样本权重
+  beta: [0.3, 0.5, 0.7]              # KL 插值扫描
+  seq_kd: true
+gen:
+  temperature: 0.7
+  top_p: 0.95
+  max_new_tokens: 256
+data:
+  input_jsonl: "data/processed/train.jsonl"
+  val_jsonl: "data/processed/val.jsonl"

@@ -1,0 +1,9 @@
+model: "Qwen/Qwen2.5-7B-Instruct"
+test_jsonl: "data/processed/test.jsonl"
+teacher_jsonl: "data/teacher_outputs/test.pred.jsonl"
+metrics:
+  - accuracy
+  - macro_f1
+  - mcc
+  - brier
+  - ece

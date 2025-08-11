@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["prediction", "analysis", "advice"],
+  "properties": {
+    "prediction": {"type": "string", "enum": ["up", "down", "flat"]},
+    "analysis": {"type": "string"},
+    "advice": {"type": "string"}
+  },
+  "additionalProperties": false
+}
