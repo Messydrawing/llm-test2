@@ -308,4 +308,14 @@ python -m test6.evaluate --questions question.jsonl --models-dir multi_lora
 当前测试结果显示在权衡中文语境、预测精确度、模型微调效果、成本四方面的表现后，Qwen-Max表现最为突出。
 
 
+## test7：Qwen2.5 32B→7B/8B 蒸馏（8月第2周）
+
+`test7` 以 Qwen/Qwen2.5-32B-Instruct 为教师模型，向 Qwen/Qwen2.5-7B 或 8B-Instruct 学生蒸馏，目标依旧是在 A 股 30 日 K 线基础上生成包含 `prediction`、`analysis`、`advice` 三字段的结构化 JSON 输出。整体流程包括：
+
+1. 调用东方财富接口抓取 K 线数据并构建训练/验证/测试集；
+2. 利用 vLLM Offline Inference 批量生成教师模型输出；
+3. 依次执行 DistillKit 隐藏态和 logits KD，再通过 TRL GKD 进行一轮 on-policy 蒸馏；
+4. 最终统一评测模型效果并进行概率校准。
+
+
 
