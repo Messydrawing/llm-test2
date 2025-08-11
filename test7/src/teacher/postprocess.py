@@ -11,5 +11,19 @@ def normalize_teacher_json(obj: dict) -> TeacherJSON:
       - prediction 归一至 up/down/flat
       - 去除额外文本/前后缀
     """
-    # TODO: 清洗老师输出并返回标准化后的 TeacherJSON
-    raise NotImplementedError
+    pred = str(obj.get("prediction", "")).lower()
+    mapping = {
+        "up": "up",
+        "increase": "up",
+        "涨": "up",
+        "down": "down",
+        "decrease": "down",
+        "跌": "down",
+        "flat": "flat",
+        "neutral": "flat",
+        "震荡": "flat",
+    }
+    norm_pred = mapping.get(pred, "flat")
+    analysis = str(obj.get("analysis", "")).strip()
+    advice = str(obj.get("advice", "")).strip()
+    return TeacherJSON(prediction=norm_pred, analysis=analysis, advice=advice)

@@ -8,5 +8,9 @@ def time_based_split(df, dates: dict) -> dict:
     dates: {"train_end":"2024-12-31", "val_end":"2025-06-30"}
     返回: {"train": df1, "val": df2, "test": df3}
     """
-    # TODO: 按日期阈值切分 DataFrame 并返回字典
-    raise NotImplementedError
+    train_end = dates.get("train_end")
+    val_end = dates.get("val_end")
+    train = df[df["date"] <= train_end]
+    val = df[(df["date"] > train_end) & (df["date"] <= val_end)]
+    test = df[df["date"] > val_end]
+    return {"train": train, "val": val, "test": test}
