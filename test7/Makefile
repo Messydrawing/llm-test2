@@ -1,4 +1,12 @@
-.PHONY: data teacher hidden logits gkd eval
+.PHONY: all data teacher hidden logits gkd eval
+
+all: ## Run the full pipeline
+	$(MAKE) data
+	$(MAKE) teacher
+	$(MAKE) hidden
+	$(MAKE) logits
+	$(MAKE) gkd
+	$(MAKE) eval
 
 data:
 	python scripts/fetch_eastmoney.py --cfg configs/data.yaml
