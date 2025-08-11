@@ -15,8 +15,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    # 读取 YAML 配置, 调用 src.teacher.vllm_offline.run_offline_infer
-    # 并将结果写入指定文件
+    # TODO: 读取 YAML 配置, 调用 vllm_offline.run_offline_infer 并写入结果
     raise NotImplementedError("需实现教师模型离线推理逻辑")
 
 

@@ -8,13 +8,14 @@ import argparse
 def parse_args():
     """解析命令行参数。"""
     parser = argparse.ArgumentParser()
-    # 可添加配置文件路径等参数
+    parser.add_argument("--cfg", type=str, help="配置文件路径")
+    # TODO: 需要时可增加覆盖参数
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    # 读取 raw 数据, 调用 summarize_kline 等模块, 最终写入 JSONL
+    # TODO: 读取配置，处理 raw K 线并生成数据集
     raise NotImplementedError("需要实现数据集构建逻辑")
 
 

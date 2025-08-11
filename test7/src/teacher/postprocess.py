@@ -11,4 +11,5 @@ def normalize_teacher_json(obj: dict) -> TeacherJSON:
       - prediction 归一至 up/down/flat
       - 去除额外文本/前后缀
     """
+    # TODO: 清洗老师输出并返回标准化后的 TeacherJSON
     raise NotImplementedError

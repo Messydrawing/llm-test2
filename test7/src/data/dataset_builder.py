@@ -12,11 +12,13 @@ def build_prompts_from_kline(kline_rows, template: str) -> PromptItem:
      包括 'prediction', 'analysis', 'advice' 三个字段。"
     返回 PromptItem
     """
+    # TODO: 用模板格式化 K 线摘要并封装成 PromptItem
     raise NotImplementedError
 
 
 def save_jsonl(objs, path: str):
     """将对象列表以 JSONL 格式写入磁盘。"""
+    # TODO: 将对象序列写入指定路径的 JSONL 文件
     raise NotImplementedError
 
 
@@ -24,4 +26,5 @@ def time_roll_split(df, cutoff_dates) -> dict:
     """
     按给定日期分三段: 训练/验证/测试，返回路径或 DataFrame 映射。
     """
+    # TODO: 根据时间阈值切分数据并返回各子集
     raise NotImplementedError

@@ -12,6 +12,9 @@
 4. 依次进行 DistillKit 隐藏态 KD、对数 KD, 再执行 TRL GKD 一轮 on-policy 蒸馏。
 5. 统一评测并进行概率校准。
 
+## 东财接口说明
+使用 `push2his.eastmoney.com/api/qt/stock/kline/get` 获取 K 线数据，核心参数包括 `secid`、`klt`、`fqt`、`fields1` 与 `fields2`，其含义可参照 AkShare/efinance 源码及文档。生产环境需遵守目标站点使用条款并做好频率限制。
+
 ## 参考
 - DistillKit: hidden/logits KD 及 DeepSpeed 示例。
 - TRL GKDTrainer 文档。

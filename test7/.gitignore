@@ -8,10 +8,14 @@ __pycache__/
 .env
 
 # 数据与输出
-/data/raw/
-/data/processed/
-/data/teacher_outputs/
-/data/splits/
+/data/raw/*
+/data/processed/*
+/data/teacher_outputs/*
+/data/splits/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/teacher_outputs/.gitkeep
+!data/splits/.gitkeep
 
 # 其他
 *.log

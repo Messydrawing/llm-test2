@@ -17,6 +17,7 @@ def to_secid(symbol: str) -> str:
     :param symbol: 形如 '600519' 或带交易所前缀 'SH600519'/'SZ000001'
     :return: 'ex.code' 形式的 secid 字符串
     """
+    # TODO: 根据证券代码推断交易所并拼接成 secid
     raise NotImplementedError
 
 
@@ -35,6 +36,7 @@ def fetch_kline(
     :param beg/end: 'YYYYMMDD' 字符串
     :return: 原始 JSON 字典
     """
+    # TODO: 构造请求参数并从东财接口获取 K 线数据
     raise NotImplementedError
 
 
@@ -45,4 +47,5 @@ def parse_kline_json(raw: Dict) -> List[Dict]:
       'close': float, 'volume': float, 'turnover': float, ...}, ...]
     注意 fields2 对应字段含义按 akshare/efinance 源码比对。
     """
+    # TODO: 解析返回 JSON 中的 kline 字段并转为列表字典格式
     raise NotImplementedError
