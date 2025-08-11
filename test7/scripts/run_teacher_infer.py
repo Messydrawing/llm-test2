@@ -3,6 +3,7 @@
 保存到 data/teacher_outputs/*.jsonl
 生成参数来自 configs/teacher_infer.yaml
 """
+
 import argparse
 
 import yaml
@@ -25,8 +26,14 @@ def main():
     with open(args.cfg, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 
+    # Structured config sections
+    data_cfg = cfg.get("data", {})
+    gen_cfg = cfg.get("generation", {})
+    meta_cfg = cfg.get("meta", {})
+
+    # Read input prompts
     prompts = []
-    for obj in read_jsonl(cfg["prompts"]):
+    for obj in read_jsonl(data_cfg["input_jsonl"]):
         if isinstance(obj, dict):
             prompts.append(obj.get("prompt", ""))
         else:
@@ -34,17 +41,17 @@ def main():
 
     results = []
     for out in run_offline_infer(
-        cfg["model"],
+        cfg["model_name"],
         prompts,
-        cfg.get("temperature", 0.7),
-        cfg.get("top_p", 0.9),
-        cfg.get("max_new_tokens", 512),
-        cfg.get("stop", []),
-        cfg.get("tp_size", 1),
+        gen_cfg.get("temperature", 0.7),
+        gen_cfg.get("top_p", 0.9),
+        gen_cfg.get("max_new_tokens", 512),
+        gen_cfg.get("stop", []),
+        cfg.get("tensor_parallel_size", 1),
         cfg.get("max_model_len", 32768),
-        True,
+        meta_cfg.get("record_sampling", True),
     ):
-        cleaned = ensure_json(out["output"], cfg["schema"])
+        cleaned = ensure_json(out["output"], data_cfg["json_schema"])
         normalized = normalize_teacher_json(cleaned)
         results.append(
             {
@@ -54,8 +61,8 @@ def main():
             }
         )
 
-    Path(cfg["output"]).parent.mkdir(parents=True, exist_ok=True)
-    write_jsonl(results, cfg["output"])
+    Path(data_cfg["output_jsonl"]).parent.mkdir(parents=True, exist_ok=True)
+    write_jsonl(results, data_cfg["output_jsonl"])
 
 
 if __name__ == "__main__":
