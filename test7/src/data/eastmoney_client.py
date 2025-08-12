@@ -4,7 +4,7 @@
 关键参数: secid, klt(101/102/103), fqt(0/1/2), fields1/fields2
 参考实现: AkShare/efinance 使用相同端点与参数
 """
-from typing import Dict, List, Literal, Tuple
+from typing import Dict, List, Literal, Tuple, Optional
 import datetime as dt
 import json
 import requests
@@ -64,15 +64,17 @@ def fetch_kline(
     return resp.json()
 
 
-def parse_kline_json(raw: Dict) -> List[Dict]:
+def parse_kline_json(raw: Optional[Dict]) -> List[Dict]:
     """
     将东财返回的 kline 数组解析为统一结构:
     [{'date': 'YYYY-MM-DD', 'open': float, 'high': float, 'low': float,
       'close': float, 'volume': float, 'turnover': float, ...}, ...]
     注意 fields2 对应字段含义按 akshare/efinance 源码比对。
     """
-    data = raw.get("data", {})
-    klines = data.get("klines", [])
+    if not raw or not isinstance(raw, dict):
+        return []
+    data = raw.get("data") or {}
+    klines = data.get("klines") or []
     result: List[Dict] = []
     for item in klines:
         parts = item.split(",")
