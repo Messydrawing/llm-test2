@@ -15,6 +15,10 @@
 ## 东财接口说明
 使用 `push2his.eastmoney.com/api/qt/stock/kline/get` 获取 K 线数据，核心参数包括 `secid`、`klt`、`fqt`、`fields1` 与 `fields2`，其含义可参照 AkShare/efinance 源码及文档。生产环境需遵守目标站点使用条款并做好频率限制。
 
+## 使用说明
+在运行整体代码前，务必先装配好DistillKit环境（通过[github](https://github.com/arcee-ai/DistillKit)获取）
+指令`make -C test7 all`可一键执行蒸馏的全部过程。
+
 ## 参考
 - DistillKit: hidden/logits KD 及 DeepSpeed 示例。
 - TRL GKDTrainer 文档。
