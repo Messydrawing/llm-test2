@@ -1,4 +1,7 @@
+
 .PHONY: all data teacher hidden logits gkd eval
+
+export PYTHONPATH := $(PWD)
 
 all: ## Run the full pipeline
 	$(MAKE) data
