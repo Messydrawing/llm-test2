@@ -1,0 +1,9 @@
+compute_environment: LOCAL_MACHINE
+distributed_type: DEEPSPEED
+num_processes: 1
+num_machines: 1
+machine_rank: 0
+gpu_ids: all
+mixed_precision: bf16
+deepspeed_config: configs/deepspeed_zero3.json
+
