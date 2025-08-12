@@ -5,5 +5,6 @@ num_machines: 1
 machine_rank: 0
 gpu_ids: all
 mixed_precision: bf16
-deepspeed_config: configs/deepspeed_zero3.json
+deepspeed_config:
+  hf_ds_config: configs/deepspeed_zero3.json
 
