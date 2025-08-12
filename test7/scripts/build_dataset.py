@@ -46,7 +46,11 @@ def main():
     output_dir = Path(cfg.get("output_dir", "data/processed"))
     output_dir.mkdir(parents=True, exist_ok=True)
     if "all" in subsets:
-        write_jsonl([i.model_dump() for i in all_items], output_dir / "all.jsonl")
+        # 当未提供显式划分时，默认生成 all.jsonl 和 train.jsonl
+        items = [i.model_dump() for i in all_items]
+        write_jsonl(items, output_dir / "all.jsonl")
+        # 兼容下游默认读取的 train.jsonl
+        write_jsonl(items, output_dir / "train.jsonl")
     else:
         for name, subset in subsets.items():
             write_jsonl([i.model_dump() for i in subset], output_dir / f"{name}.jsonl")
