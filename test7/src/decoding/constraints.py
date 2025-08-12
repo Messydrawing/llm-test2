@@ -1,7 +1,7 @@
 """
 约束解码: 保障学生推理时只输出合法 JSON。
 方法1: prefix_allowed_tokens_fn（Transformers原生）
-方法2: 集成 lm-format-enforcer 构造约束函数（见 format_enforcer.py）
+方法2: 集成 lm-format-enforcer 构造约束函数（format_enforcer.py）
 """
 from typing import Callable, List
 import torch
