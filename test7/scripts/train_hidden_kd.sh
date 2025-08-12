@@ -3,4 +3,4 @@
 # 关键变量: TEACHER/STUDENT/OUTPUT_DIR/EPOCHS/BF16/FA/DS_CONFIG
 # 参考 DistillKit 官方 README 的启动方式
 
-accelerate launch --config_file configs/accelerate_ds_zero3.yaml distil_hidden.py --config configs/distill_hidden.yaml "$@"
+python -m src.distill.hidden_kd --config configs/distill_hidden.yaml "$@"

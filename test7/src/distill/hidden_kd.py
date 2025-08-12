@@ -4,6 +4,9 @@
 """
 from typing import Dict
 import subprocess
+import argparse
+from pathlib import Path
+import yaml
 
 
 def launch_hidden_kd(config: Dict):
@@ -12,13 +15,22 @@ def launch_hidden_kd(config: Dict):
     调用 accelerate + DistillKit 的 distil_hidden.py
     """
     cfg_path = config.get("config_path", "configs/accelerate_ds_zero3.yaml")
-    cmd = [
-        "accelerate",
-        "launch",
-        "--config_file",
-        cfg_path,
-        config.get("script", "distil_hidden.py"),
-    ]
+    script = config.get("script", "distil_hidden.py")
+    if script == "distil_hidden.py":
+        # 尝试在已安装的 DistillKit 包中定位该脚本
+        try:
+            import distillkit
+            pkg_dir = Path(distillkit.__file__).resolve().parent
+            candidate = pkg_dir / "distil_hidden.py"
+            if not candidate.exists():
+                candidate = pkg_dir / "scripts" / "distil_hidden.py"
+            script = str(candidate)
+        except Exception as exc:  # pragma: no cover - 网络/安装环境差异
+            raise FileNotFoundError(
+                "distil_hidden.py not found. Please ensure DistillKit is installed."
+            ) from exc
+
+    cmd = ["accelerate", "launch", "--config_file", cfg_path, script]
     distill_cfg = config.get("distill_config", "configs/distill_hidden.yaml")
     if distill_cfg:
         cmd.extend(["--config", distill_cfg])
@@ -32,3 +44,27 @@ def launch_hidden_kd(config: Dict):
         subprocess.run(cmd, check=True)
     except FileNotFoundError:
         print("accelerate not found, command would be:", " ".join(cmd))
+
+
+def main():  # pragma: no cover - CLI 简单包装
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--config", default="configs/distill_hidden.yaml", help="DistillKit 配置文件"
+    )
+    parser.add_argument(
+        "--accelerate-config", default="configs/accelerate_ds_zero3.yaml", help="accelerate 配置"
+    )
+    args, extra = parser.parse_known_args()
+    with open(args.config, "r", encoding="utf-8") as f:
+        distill_cfg = yaml.safe_load(f)
+    cfg = {
+        "config_path": args.accelerate_config,
+        "distill_config": args.config,
+        "extra_args": extra,
+    }
+    cfg.update(distill_cfg)
+    launch_hidden_kd(cfg)
+
+
+if __name__ == "__main__":  # pragma: no cover
+    main()

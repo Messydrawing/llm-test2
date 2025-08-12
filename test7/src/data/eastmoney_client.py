@@ -4,10 +4,11 @@
 关键参数: secid, klt(101/102/103), fqt(0/1/2), fields1/fields2
 参考实现: AkShare/efinance 使用相同端点与参数
 """
-from typing import Dict, List, Literal, Tuple, Optional
+from typing import Dict, List, Literal, Tuple, Optional, Iterable
 import datetime as dt
 import json
 import requests
+import pandas as pd
 
 
 def to_secid(symbol: str) -> str:
@@ -96,3 +97,36 @@ def parse_kline_json(raw: Optional[Dict]) -> List[Dict]:
             }
         )
     return result
+
+
+class EastMoneyAPI:
+    """基于上述函数的轻量封装，直接返回 :class:`pandas.DataFrame`。"""
+
+    def get_kline_data(self, symbol: str, num: int = 1000) -> pd.DataFrame:
+        """获取指定股票最近 ``num`` 天的日K线数据。
+
+        :param symbol: 股票代码，例如 ``600519`` 或 ``SH600519``。
+        :param num: 返回的最近天数。
+        :return: ``pandas.DataFrame``，按日期升序排列。
+        """
+
+        secid = to_secid(symbol)
+        end = dt.datetime.now().strftime("%Y%m%d")
+        beg = (dt.datetime.now() - dt.timedelta(days=num * 2)).strftime("%Y%m%d")
+        raw = fetch_kline(secid, beg, end)
+        rows = parse_kline_json(raw)
+        df = pd.DataFrame(rows)
+        if not df.empty:
+            df["date"] = pd.to_datetime(df["date"])
+            df.sort_values("date", inplace=True)
+            df = df.tail(num)
+        return df
+
+    def get_recent_data(self, symbols: Iterable[str], days: int) -> Dict[str, pd.DataFrame]:
+        """批量获取多只股票最近 ``days`` 天的数据。"""
+
+        result: Dict[str, pd.DataFrame] = {}
+        for sym in symbols:
+            df = self.get_kline_data(sym, num=days)
+            result[sym] = df
+        return result
