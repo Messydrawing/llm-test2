@@ -1,7 +1,7 @@
 """
 老师输出的 JSON 清洗、字段补齐、与 prompt 对齐。
 """
-from .schema import TeacherJSON
+from ..data.schema import TeacherJSON
 
 
 def normalize_teacher_json(obj: dict) -> TeacherJSON:
