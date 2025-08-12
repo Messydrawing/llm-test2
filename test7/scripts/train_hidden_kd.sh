@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# 用 accelerate + deepspeed 启动 DistillKit 的隐藏态蒸馏
-# 关键变量: TEACHER/STUDENT/OUTPUT_DIR/EPOCHS/BF16/FA/DS_CONFIG
-# 参考 DistillKit 官方 README 的启动方式
+set -euo pipefail
+cd "$(dirname "$0")/.."   # 切回 test7 根
+export PYTHONPATH="${PYTHONPATH:-}:$(pwd)"
 
-python -m src.distill.hidden_kd --config configs/distill_hidden.yaml "$@"
+ACCEL_CFG="configs/accelerate_ds_zero3.yaml"
+DISTILLKIT_ROOT="/zeng_gk/Zengxl/DistillKit-main"   # 你放 DistillKit 的目录
+accelerate launch --config_file "$ACCEL_CFG" "$DISTILLKIT_ROOT/distil_hidden.py"
