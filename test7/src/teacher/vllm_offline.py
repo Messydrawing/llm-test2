@@ -72,5 +72,8 @@ def ensure_json(output_str: str, schema_path: str) -> Dict:
             "analysis": data.get("analysis", ""),
             "advice": data.get("advice", ""),
         }
+        allowed = schema.get("properties", {}).get("prediction", {}).get("enum", [])
+        if cleaned["prediction"] not in allowed:
+            cleaned["prediction"] = "flat"
         jsonschema.validate(cleaned, schema)
         return cleaned
