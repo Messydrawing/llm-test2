@@ -59,7 +59,11 @@ def main():
         rows = parse_kline_json(data)
         df = pd.DataFrame(rows)
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
-        df.dropna(subset=["close", "volume"], inplace=True)
+        required_cols = {"close", "volume"}
+        if not required_cols.issubset(df.columns):
+            print(f"[警告] 股票{sym} 缺少必要字段，已跳过保存")
+            continue
+        df.dropna(subset=list(required_cols), inplace=True)
         if df.empty:
             print(f"[警告] 股票{sym} 无有效数据，已跳过保存")
             continue
