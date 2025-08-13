@@ -35,9 +35,14 @@ def main():
     prompts = []
     for obj in read_jsonl(data_cfg["input_jsonl"]):
         if isinstance(obj, dict):
-            prompts.append(obj.get("prompt", ""))
+            p = obj.get("prompt", "")
         else:
-            prompts.append(str(obj))
+            p = str(obj)
+        if not p:
+            # 如果存在空 prompt，则忽略并提示，避免教师模型输出默认值
+            print("[警告] 检测到空 prompt，已跳过")
+            continue
+        prompts.append(p)
 
     results = []
     for out in run_offline_infer(

@@ -32,9 +32,18 @@ def main():
         with open(path, "r", encoding="utf-8") as fr:
             raw = json.load(fr)
         kline = parse_kline_json(raw)
+        if not kline:
+            # 若原始 JSON 中无有效 K 线数据，则跳过该文件，避免生成空 prompt
+            print(f"[警告] {path.name} 无有效K线数据，已跳过")
+            continue
         for rec in kline:
             rec["stock_code"] = path.stem
-        item = build_prompts_from_kline(kline, template)
+        try:
+            item = build_prompts_from_kline(kline, template)
+        except ValueError as e:
+            # 如果K线数据不足或含有NaN/inf等异常，跳过该样本
+            print(f"[警告] {path.name} 数据异常: {e}，已跳过")
+            continue
         all_items.append(item)
 
     df = cfg.get("dataframe")

@@ -3,6 +3,11 @@ student: "Qwen/Qwen2.5-7B-Instruct"
 precision: "bf16"
 flash_attention: true
 deepspeed: "configs/deepspeed_zero3.json"
+dataset:
+  name: "json"
+  data_files:
+    train: "data/teacher_outputs/train.pred.jsonl"
+  split: "train"
 train:
   epochs: 1
   lr: 2.0e-5
