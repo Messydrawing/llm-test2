@@ -70,34 +70,58 @@ logger = logging.getLogger(__name__)
 
 
 def parse_kline_json(raw: Optional[Dict]) -> List[Dict]:
+    """Parse K-line JSON from EastMoney or local cache.
+
+    The function is tolerant to several shapes:
+
+    - ``{"data": {"klines": [...]}}`` (official EastMoney response)
+    - ``{"klines": [...]}``
+    - ``[...]`` where the list is either strings or dict records
     """
-    将东财返回的 kline 数组解析为统一结构:
-    [{'date': 'YYYY-MM-DD', 'open': float, 'high': float, 'low': float,
-      'close': float, 'volume': float, 'turnover': float, ...}, ...]
-    注意 fields2 对应字段含义按 akshare/efinance 源码比对。
-    """
-    if not isinstance(raw, dict):
-        raise ValueError("raw JSON must be a dict")
-    data = raw.get("data")
-    if not isinstance(data, dict):
-        raise ValueError("JSON missing 'data' field")
-    klines = data.get("klines")
+
+    if isinstance(raw, dict):
+        if isinstance(raw.get("data"), dict) and "klines" in raw["data"]:
+            klines = raw["data"]["klines"]
+        elif "klines" in raw:
+            klines = raw["klines"]
+        else:
+            raise ValueError("JSON missing 'klines' list")
+    elif isinstance(raw, list):
+        klines = raw
+    else:
+        raise ValueError("raw JSON must be dict or list")
+
     if not isinstance(klines, list):
         raise ValueError("JSON missing 'klines' list")
 
     result: List[Dict] = []
     total = len(klines)
     for idx, item in enumerate(klines):
-        parts = item.split(",")
-        if len(parts) < 7:
+        if isinstance(item, str):
+            parts = item.split(",")
+            if len(parts) < 7:
+                raise ValueError(f"kline entry {idx} malformed: {item}")
+            date = parts[0]
+            try:
+                open_, close, high, low = map(float, parts[1:5])
+                volume = float(parts[5])
+                turnover = float(parts[6])
+            except ValueError as e:
+                raise ValueError(f"kline entry {idx} malformed: {item}") from e
+        elif isinstance(item, dict):
+            try:
+                date = item["date"]
+                open_ = float(item["open"])
+                close = float(item["close"])
+                high = float(item["high"])
+                low = float(item["low"])
+                volume = float(item.get("volume", 0))
+                turnover = float(item.get("turnover", 0))
+            except Exception as e:
+                raise ValueError(f"kline entry {idx} malformed: {item}") from e
+        else:
             raise ValueError(f"kline entry {idx} malformed: {item}")
-        date = parts[0]
-        try:
-            open_, close, high, low = map(float, parts[1:5])
-            volume = float(parts[5])
-            turnover = float(parts[6])
-        except ValueError as e:
-            raise ValueError(f"kline entry {idx} malformed: {item}") from e
+
         result.append(
             {
                 "date": date,
