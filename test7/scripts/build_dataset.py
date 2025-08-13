@@ -28,23 +28,55 @@ def main():
     raw_dir = Path(args.raw or cfg.get("raw_dir", "data/raw"))
     template = cfg["template"]
     all_items = []
-    for path in raw_dir.glob("*.json"):
-        with open(path, "r", encoding="utf-8") as fr:
-            raw = json.load(fr)
-        kline = parse_kline_json(raw)
-        if not kline:
-            # 若原始 JSON 中无有效 K 线数据，则跳过该文件，避免生成空 prompt
-            print(f"[警告] {path.name} 无有效K线数据，已跳过")
-            continue
-        for rec in kline:
-            rec["stock_code"] = path.stem
-        try:
-            item = build_prompts_from_kline(kline, template)
-        except ValueError as e:
-            # 如果K线数据不足或含有NaN/inf等异常，跳过该样本
-            print(f"[警告] {path.name} 数据异常: {e}，已跳过")
-            continue
-        all_items.append(item)
+
+    raw_paths = list(raw_dir.glob("*.json"))
+    if not raw_paths:
+        print(f"[警告] 在 {raw_dir} 未找到本地JSON，尝试在线获取…")
+        from src.data.eastmoney_client import EastMoneyAPI
+        import pandas as pd
+
+        api = EastMoneyAPI()
+        symbols = cfg.get("symbols", [])
+        for sym in symbols:
+            df = api.get_kline_data(sym)
+            if df is None or df.empty:
+                print(f"[警告] 股票 {sym} 在线获取失败，已跳过")
+                continue
+            df = df.copy()
+            if "date" in df.columns:
+                df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
+            kline = df.to_dict(orient="records")
+            for rec in kline:
+                rec["stock_code"] = sym
+            try:
+                item = build_prompts_from_kline(kline, template)
+            except ValueError as e:
+                print(f"[警告] {sym} 数据异常: {e}，已跳过")
+                continue
+            all_items.append(item)
+        if not all_items:
+            print("[警告] 未能在线获取任何K线数据")
+    else:
+        for path in raw_paths:
+            with open(path, "r", encoding="utf-8") as fr:
+                raw = json.load(fr)
+            kline = parse_kline_json(raw)
+            if not kline:
+                # 若原始 JSON 中无有效 K 线数据，则跳过该文件，避免生成空 prompt
+                print(f"[警告] {path.name} 无有效K线数据，已跳过")
+                continue
+            for rec in kline:
+                rec["stock_code"] = path.stem
+            try:
+                item = build_prompts_from_kline(kline, template)
+            except ValueError as e:
+                # 如果K线数据不足或含有NaN/inf等异常，跳过该样本
+                print(f"[警告] {path.name} 数据异常: {e}，已跳过")
+                continue
+            all_items.append(item)
+
+    if not all_items:
+        print("[警告] 未能从本地或远程获取任何样本")
 
     df = cfg.get("dataframe")
     if df is not None:
