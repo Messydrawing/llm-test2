@@ -22,7 +22,12 @@ def run_offline_infer(
     """
     try:
         from vllm import LLM, SamplingParams
+    except Exception as e:
+        raise RuntimeError(
+            "vLLM 未安装或初始化失败，请检查依赖与 GPU 环境"
+        ) from e
 
+    try:
         sampling = SamplingParams(
             temperature=temperature,
             top_p=top_p,
@@ -40,9 +45,8 @@ def run_offline_infer(
             if record_meta:
                 item["meta"] = out.outputs[0].logprobs
             yield item
-    except Exception:
-        for p in prompts:
-            yield {"prompt": p, "output": "", "meta": {}}
+    except Exception as e:
+        raise RuntimeError("vLLM 推理失败") from e
 
 
 def ensure_json(output_str: str, schema_path: str) -> Dict:

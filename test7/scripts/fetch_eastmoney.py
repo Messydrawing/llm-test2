@@ -9,7 +9,14 @@ import json
 from pathlib import Path
 import yaml
 
-from src.data.eastmoney_client import to_secid, fetch_kline, EastMoneyAPI
+from src.data.eastmoney_client import (
+    to_secid,
+    fetch_kline,
+    EastMoneyAPI,
+    parse_kline_json,
+)
+import pandas as pd
+import numpy as np
 
 
 def parse_args():
@@ -49,6 +56,19 @@ def main():
             cfg.get("klt", 101),
             cfg.get("fqt", 1),
         )
+        rows = parse_kline_json(data)
+        df = pd.DataFrame(rows)
+        df.replace([np.inf, -np.inf], np.nan, inplace=True)
+        df.dropna(subset=["close", "volume"], inplace=True)
+        if df.empty:
+            print(f"[警告] 股票{sym} 无有效数据，已跳过保存")
+            continue
+        # 重建原始 JSON 结构，以便下游 parse_kline_json 解析
+        klines = [
+            f"{r['date']},{r['open']},{r['close']},{r['high']},{r['low']},{r['volume']},{r['turnover']}"
+            for r in df.to_dict(orient="records")
+        ]
+        data.setdefault("data", {})["klines"] = klines
         with open(output_dir / f"{sym}.json", "w", encoding="utf-8") as fw:
             json.dump(data, fw, ensure_ascii=False)
 
