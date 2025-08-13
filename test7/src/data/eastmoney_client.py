@@ -7,6 +7,7 @@
 from typing import Dict, List, Literal, Tuple, Optional, Iterable
 import datetime as dt
 import json
+import logging
 import requests
 import pandas as pd
 
@@ -65,6 +66,9 @@ def fetch_kline(
     return resp.json()
 
 
+logger = logging.getLogger(__name__)
+
+
 def parse_kline_json(raw: Optional[Dict]) -> List[Dict]:
     """
     将东财返回的 kline 数组解析为统一结构:
@@ -72,19 +76,28 @@ def parse_kline_json(raw: Optional[Dict]) -> List[Dict]:
       'close': float, 'volume': float, 'turnover': float, ...}, ...]
     注意 fields2 对应字段含义按 akshare/efinance 源码比对。
     """
-    if not raw or not isinstance(raw, dict):
-        return []
-    data = raw.get("data") or {}
-    klines = data.get("klines") or []
+    if not isinstance(raw, dict):
+        raise ValueError("raw JSON must be a dict")
+    data = raw.get("data")
+    if not isinstance(data, dict):
+        raise ValueError("JSON missing 'data' field")
+    klines = data.get("klines")
+    if not isinstance(klines, list):
+        raise ValueError("JSON missing 'klines' list")
+
     result: List[Dict] = []
-    for item in klines:
+    total = len(klines)
+    for idx, item in enumerate(klines):
         parts = item.split(",")
         if len(parts) < 7:
-            continue
+            raise ValueError(f"kline entry {idx} malformed: {item}")
         date = parts[0]
-        open_, close, high, low = map(float, parts[1:5])
-        volume = float(parts[5])
-        turnover = float(parts[6])
+        try:
+            open_, close, high, low = map(float, parts[1:5])
+            volume = float(parts[5])
+            turnover = float(parts[6])
+        except ValueError as e:
+            raise ValueError(f"kline entry {idx} malformed: {item}") from e
         result.append(
             {
                 "date": date,
@@ -96,6 +109,11 @@ def parse_kline_json(raw: Optional[Dict]) -> List[Dict]:
                 "turnover": turnover,
             }
         )
+
+    valid = len(result)
+    logger.info("Parsed %d/%d kline rows", valid, total)
+    if valid == 0:
+        logger.warning("No valid kline rows parsed")
     return result
 
 
