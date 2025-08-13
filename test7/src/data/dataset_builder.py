@@ -3,7 +3,16 @@
 """
 import json
 from .schema import PromptItem
-from .summarize_kline import make_summary
+
+
+def format_prompt(
+    template: str, *, stock_code: str, kline_summary, change: float
+) -> str:
+    """将结构化数据嵌入模板，生成最终提示串。"""
+    summary_json = json.dumps(kline_summary, ensure_ascii=False)
+    return template.format(
+        stock_code=stock_code, summary=summary_json, change=round(change, 2)
+    )
 
 
 def build_prompts_from_kline(kline_rows, template: str) -> PromptItem:
@@ -14,13 +23,38 @@ def build_prompts_from_kline(kline_rows, template: str) -> PromptItem:
      包括 'prediction', 'analysis', 'advice' 三个字段。"
     返回 PromptItem
     """
-    summary, change, _ = make_summary(kline_rows)
-    stock_code = kline_rows[0].get("stock_code", "") if kline_rows else ""
-    prompt = template.format(
-        stock_code=stock_code, summary=summary, change=round(change, 2)
+    if not kline_rows:
+        raise ValueError("kline_rows is empty")
+    import pandas as pd
+
+    window_df = pd.DataFrame(kline_rows)[
+        [
+            "date",
+            "open",
+            "close",
+            "high",
+            "low",
+            "volume",
+            "MA5",
+            "MA10",
+            "RSI14",
+            "MACD",
+        ]
+    ]
+    change = ((window_df["close"].iloc[-1] / window_df["close"].iloc[0]) - 1) * 100
+    kline_summary = window_df.to_dict(orient="records")
+    stock_code = kline_rows[0].get("stock_code", "")
+    prompt = format_prompt(
+        template,
+        stock_code=stock_code,
+        kline_summary=kline_summary,
+        change=change,
     )
     return PromptItem(
-        stock_code=stock_code, summary=summary, change=change, prompt=prompt
+        stock_code=stock_code,
+        kline_summary=kline_summary,
+        change=change,
+        prompt=prompt,
     )
 
 
