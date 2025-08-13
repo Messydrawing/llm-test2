@@ -27,6 +27,13 @@ def main():
         cfg = yaml.safe_load(f)
     raw_dir = Path(args.raw or cfg.get("raw_dir", "data/raw"))
     template = cfg["template"]
+    tokenizer_name = cfg.get("tokenizer")
+    max_tokens = cfg.get("max_tokens", 1024)
+    tokenizer = None
+    if tokenizer_name:
+        from transformers import AutoTokenizer
+
+        tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
     all_items = []
 
     raw_paths = list(raw_dir.glob("*.json"))
@@ -49,7 +56,12 @@ def main():
             for rec in kline:
                 rec["stock_code"] = sym
             try:
-                item = build_prompts_from_kline(kline, template)
+                item = build_prompts_from_kline(
+                    kline,
+                    template,
+                    tokenizer=tokenizer,
+                    max_tokens=max_tokens,
+                )
             except ValueError as e:
                 print(f"[警告] {sym} 数据异常: {e}，已跳过")
                 continue
@@ -68,7 +80,12 @@ def main():
             for rec in kline:
                 rec["stock_code"] = path.stem
             try:
-                item = build_prompts_from_kline(kline, template)
+                item = build_prompts_from_kline(
+                    kline,
+                    template,
+                    tokenizer=tokenizer,
+                    max_tokens=max_tokens,
+                )
             except ValueError as e:
                 # 如果K线数据不足或含有NaN/inf等异常，跳过该样本
                 print(f"[警告] {path.name} 数据异常: {e}，已跳过")

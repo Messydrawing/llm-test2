@@ -1,7 +1,8 @@
-"""
-把 raw K 线 -> processed prompt 样本，并落地为 {train,val,test}.jsonl
-"""
+"""把 raw K 线 -> processed prompt 样本，并落地为 {train,val,test}.jsonl."""
+
 import json
+from typing import Any
+
 from .schema import PromptItem
 
 
@@ -15,7 +16,32 @@ def format_prompt(
     )
 
 
-def build_prompts_from_kline(kline_rows, template: str) -> PromptItem:
+def _trim_sample_tokens(sample: dict[str, Any], tokenizer, max_tokens: int) -> None:
+    """Trim ``kline_summary`` so ``format_prompt(sample)`` fits ``max_tokens``."""
+    if tokenizer is None:
+        return
+    while len(sample["kline_summary"]) > 1:
+        text = format_prompt(
+            sample["template"],
+            stock_code=sample["stock_code"],
+            kline_summary=sample["kline_summary"],
+            change=sample["change"],
+        )
+        if (
+            len(tokenizer(text, add_special_tokens=False)["input_ids"])
+            <= max_tokens
+        ):
+            break
+        sample["kline_summary"].pop(0)
+
+
+def build_prompts_from_kline(
+    kline_rows,
+    template: str,
+    *,
+    tokenizer=None,
+    max_tokens: int = 1024,
+) -> PromptItem:
     """
     使用固定模板构建最终 prompt:
     "股票 {stock_code} 近30日K线数据: {summary}\n涨跌幅: {change}%。
@@ -44,15 +70,22 @@ def build_prompts_from_kline(kline_rows, template: str) -> PromptItem:
     change = ((window_df["close"].iloc[-1] / window_df["close"].iloc[0]) - 1) * 100
     kline_summary = window_df.to_dict(orient="records")
     stock_code = kline_rows[0].get("stock_code", "")
+    sample = {
+        "stock_code": stock_code,
+        "kline_summary": kline_summary,
+        "change": change,
+        "template": template,
+    }
+    _trim_sample_tokens(sample, tokenizer, max_tokens)
     prompt = format_prompt(
         template,
         stock_code=stock_code,
-        kline_summary=kline_summary,
+        kline_summary=sample["kline_summary"],
         change=change,
     )
     return PromptItem(
         stock_code=stock_code,
-        kline_summary=kline_summary,
+        kline_summary=sample["kline_summary"],
         change=change,
         prompt=prompt,
     )
