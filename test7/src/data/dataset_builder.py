@@ -7,24 +7,24 @@ from .schema import PromptItem
 
 
 def format_prompt(
-    template: str, *, stock_code: str, kline_summary, change: float
+    template: str, *, stock_code: str, kline_json, change: float
 ) -> str:
     """将结构化数据嵌入模板，生成最终提示串。"""
-    summary_json = json.dumps(kline_summary, ensure_ascii=False)
+    kline_json_str = json.dumps(kline_json, ensure_ascii=False)
     return template.format(
-        stock_code=stock_code, summary=summary_json, change=round(change, 2)
+        stock_code=stock_code, kline_json=kline_json_str, change=round(change, 2)
     )
 
 
 def _trim_sample_tokens(sample: dict[str, Any], tokenizer, max_tokens: int) -> None:
-    """Trim ``kline_summary`` so ``format_prompt(sample)`` fits ``max_tokens``."""
+    """Trim ``kline_json`` so ``format_prompt(sample)`` fits ``max_tokens``."""
     if tokenizer is None:
         return
-    while len(sample["kline_summary"]) > 1:
+    while len(sample["kline_json"]) > 1:
         text = format_prompt(
             sample["template"],
             stock_code=sample["stock_code"],
-            kline_summary=sample["kline_summary"],
+            kline_json=sample["kline_json"],
             change=sample["change"],
         )
         if (
@@ -32,7 +32,7 @@ def _trim_sample_tokens(sample: dict[str, Any], tokenizer, max_tokens: int) -> N
             <= max_tokens
         ):
             break
-        sample["kline_summary"].pop(0)
+        sample["kline_json"].pop(0)
 
 
 def build_prompts_from_kline(
@@ -44,7 +44,7 @@ def build_prompts_from_kline(
 ) -> PromptItem:
     """
     使用固定模板构建最终 prompt:
-    "股票 {stock_code} 近30日K线数据: {summary}\n涨跌幅: {change}%。
+    "股票 {stock_code} 近30日K线数据: {kline_json}\n涨跌幅: {change}%。
      请预测后市走势，给出简短分析和操作建议，并以 JSON 格式回复，
      包括 'prediction', 'analysis', 'advice' 三个字段。"
     返回 PromptItem
@@ -68,11 +68,11 @@ def build_prompts_from_kline(
         ]
     ]
     change = ((window_df["close"].iloc[-1] / window_df["close"].iloc[0]) - 1) * 100
-    kline_summary = window_df.to_dict(orient="records")
+    kline_json = window_df.to_dict(orient="records")
     stock_code = kline_rows[0].get("stock_code", "")
     sample = {
         "stock_code": stock_code,
-        "kline_summary": kline_summary,
+        "kline_json": kline_json,
         "change": change,
         "template": template,
     }
@@ -80,12 +80,12 @@ def build_prompts_from_kline(
     prompt = format_prompt(
         template,
         stock_code=stock_code,
-        kline_summary=sample["kline_summary"],
+        kline_json=sample["kline_json"],
         change=change,
     )
     return PromptItem(
         stock_code=stock_code,
-        kline_summary=sample["kline_summary"],
+        kline_json=sample["kline_json"],
         change=change,
         prompt=prompt,
     )
