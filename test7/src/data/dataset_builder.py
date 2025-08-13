@@ -161,9 +161,9 @@ def build_dataset(
             continue
 
         df["pct_chg"] = df["close"].pct_change() * 100
-        df["pct_chg"].fillna(0, inplace=True)
-        df["MA5"] = df["close"].rolling(5).mean()
-        df["MA10"] = df["close"].rolling(10).mean()
+        df["pct_chg"] = df["pct_chg"].fillna(0)
+        df["MA5"] = df["close"].rolling(5, min_periods=5).mean()
+        df["MA10"] = df["close"].rolling(10, min_periods=10).mean()
         diff = df["close"].diff()
         gains = diff.clip(lower=0)
         losses = -diff.clip(upper=0)
@@ -182,6 +182,9 @@ def build_dataset(
         df[["MA5", "MA10", "RSI14", "MACD"]] = df[
             ["MA5", "MA10", "RSI14", "MACD"]
         ].round(2)
+
+        df = df.replace([np.inf, -np.inf], np.nan)
+        df = df.dropna(subset=["open", "high", "low", "close", "volume"])
 
         n = len(df)
         if n < window:

@@ -76,14 +76,14 @@ def main():
         if df.empty:
             logger.warning(f"股票{sym} 无有效数据，已跳过保存")
             continue
-        # 重建原始 JSON 结构，以便下游 parse_kline_json 解析
+        # 仅保留必要字段，重建成解析器期望的结构
         klines = [
             f"{r['date']},{r['open']},{r['close']},{r['high']},{r['low']},{r['volume']},{r['turnover']}"
             for r in df.to_dict(orient="records")
         ]
-        data.setdefault("data", {})["klines"] = klines
+        payload = {"data": {"klines": klines}}
         with open(output_dir / f"{sym}.json", "w", encoding="utf-8") as fw:
-            json.dump(data, fw, ensure_ascii=False)
+            json.dump(payload, fw, ensure_ascii=False)
 
 
 if __name__ == "__main__":
