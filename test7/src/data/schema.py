@@ -4,7 +4,7 @@ from typing import Literal, Optional
 
 class PromptItem(BaseModel):
     stock_code: str
-    kline_summary: list[dict]
+    kline_json: list[dict]
     change: float
     prompt: str  # 套用统一模板的最终提示串
 

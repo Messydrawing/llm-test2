@@ -4,7 +4,7 @@ from src.data.schema import PromptItem, TeacherJSON, Record
 
 def test_prompt_item_fields():
     item = PromptItem(
-        stock_code="000001", kline_summary=[], change=0.0, prompt="test"
+        stock_code="000001", kline_json=[], change=0.0, prompt="test"
     )
     assert item.stock_code == "000001"
-    assert item.kline_summary == []
+    assert item.kline_json == []

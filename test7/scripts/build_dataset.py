@@ -1,5 +1,5 @@
 """
-将 raw K 线转为 processed 样本，生成 prompt/summary/change
+将 raw K 线转为 processed 样本，生成 prompt/kline_json/change
 并时间滚动切分，导出 data/processed/*.jsonl 与 data/splits/*
 """
 import argparse
