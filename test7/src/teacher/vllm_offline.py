@@ -15,19 +15,21 @@ def run_offline_infer(
     stop: list,
     tp_size: int = 1,
     max_model_len: int = 32768,
-    record_meta: bool = True
+    record_meta: bool = True,
 ) -> Iterable[Dict]:
+    """统一的离线推理接口。
+
+    优先尝试使用 vLLM 进行推理；若环境中缺少 vLLM 或 GPU 支持，
+    则自动回退到 Hugging Face Transformers，保证最小功能可用。
+
+    :return: 迭代返回 {"prompt": str, "output": str, "meta": {...}}
     """
-    :return: 迭代返回 { "prompt": str, "output": str, "meta": {...} }
-    """
-    try:
-        from vllm import LLM, SamplingParams
-    except Exception as e:
-        raise RuntimeError(
-            "vLLM 未安装或初始化失败，请检查依赖与 GPU 环境"
-        ) from e
+
+    prompts = list(prompts)
 
     try:
+        from vllm import LLM, SamplingParams
+
         sampling = SamplingParams(
             temperature=temperature,
             top_p=top_p,
@@ -39,14 +41,40 @@ def run_offline_infer(
             tensor_parallel_size=tp_size,
             max_model_len=max_model_len,
         )
-        outputs = llm.generate(list(prompts), sampling)
+        outputs = llm.generate(prompts, sampling)
         for prompt, out in zip(prompts, outputs):
             item = {"prompt": prompt, "output": out.outputs[0].text}
             if record_meta:
                 item["meta"] = out.outputs[0].logprobs
             yield item
-    except Exception as e:
-        raise RuntimeError("vLLM 推理失败") from e
+        return
+    except Exception:
+        try:
+            from transformers import AutoModelForCausalLM, AutoTokenizer
+            import torch
+
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            tokenizer = AutoTokenizer.from_pretrained(model_name)
+            model = AutoModelForCausalLM.from_pretrained(model_name)
+            model.to(device)
+            for prompt in prompts:
+                inputs = tokenizer(prompt, return_tensors="pt").to(device)
+                output_ids = model.generate(
+                    **inputs,
+                    do_sample=temperature > 0,
+                    temperature=temperature,
+                    top_p=top_p,
+                    max_new_tokens=max_new_tokens,
+                )
+                text = tokenizer.decode(
+                    output_ids[0, inputs["input_ids"].shape[1]:],
+                    skip_special_tokens=True,
+                )
+                yield {"prompt": prompt, "output": text}
+        except Exception as e:
+            raise RuntimeError(
+                "vLLM 未安装或初始化失败，请检查依赖与 GPU 环境"
+            ) from e
 
 
 def ensure_json(output_str: str, schema_path: str) -> Dict:
