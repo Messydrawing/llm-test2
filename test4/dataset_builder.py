@@ -108,7 +108,7 @@ def build_dataset(
             continue
         # --- Compute technical indicators and mark anomalies ---
         df["pct_chg"] = df["close"].pct_change() * 100
-        df["pct_chg"].fillna(0, inplace=True)
+        df["pct_chg"] = df["pct_chg"].fillna(0)
         df["MA5"] = df["close"].rolling(5).mean()
         df["MA10"] = df["close"].rolling(10).mean()
         differences = df["close"].diff()
