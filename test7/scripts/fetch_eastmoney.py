@@ -36,9 +36,15 @@ def main():
     args = parse_args()
     with open(args.cfg, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
+
     symbols = args.symbols or cfg.get("symbols", [])
-    output_dir = Path(cfg.get("output_dir", "data/raw"))
+
+    # 数据保存目录：默认在 save_dir/raw 下
+    output_dir = Path(cfg.get("save_dir", "data")) / "raw"
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    # K线相关参数位于配置文件的 kline 小节
+    kline_cfg = cfg.get("kline", {})
 
     api = EastMoneyAPI()
     for sym in symbols:
@@ -58,12 +64,22 @@ def main():
 
         # 仍使用原始接口抓取并保存原始 JSON，以保持下游兼容
         secid = to_secid(sym)
+        beg = kline_cfg.get("beg")
+        end = kline_cfg.get("end")
+        if beg:
+            beg = beg.replace("-", "")
+        if end:
+            end = end.replace("-", "")
         data = fetch_kline(
             secid,
-            cfg.get("beg"),
-            cfg.get("end"),
-            cfg.get("klt", 101),
-            cfg.get("fqt", 1),
+            beg,
+            end,
+            kline_cfg.get("klt", 101),
+            kline_cfg.get("fqt", 1),
+            kline_cfg.get("fields1", "f1,f2,f3,f4,f5,f6"),
+            kline_cfg.get(
+                "fields2", "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f116"
+            ),
         )
         try:
             rows = parse_kline_json(data)

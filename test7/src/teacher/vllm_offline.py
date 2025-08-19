@@ -53,10 +53,20 @@ def run_offline_infer(
             from transformers import AutoModelForCausalLM, AutoTokenizer
             import torch
 
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-            tokenizer = AutoTokenizer.from_pretrained(model_name)
-            model = AutoModelForCausalLM.from_pretrained(model_name)
-            model.to(device)
+            tokenizer = AutoTokenizer.from_pretrained(
+                model_name, trust_remote_code=True
+            )
+            model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                trust_remote_code=True,
+                device_map="auto" if torch.cuda.is_available() else None,
+                torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+            )
+            device = (
+                model.device
+                if hasattr(model, "device")
+                else next(model.parameters()).device
+            )
             for prompt in prompts:
                 inputs = tokenizer(prompt, return_tensors="pt").to(device)
                 output_ids = model.generate(
