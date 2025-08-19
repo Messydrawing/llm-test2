@@ -5,6 +5,7 @@
 """
 
 import argparse
+import os
 
 import yaml
 from pathlib import Path
@@ -26,6 +27,13 @@ def main():
     with open(args.cfg, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 
+    if endpoint := cfg.get("hf_endpoint"):
+        os.environ.setdefault("HF_ENDPOINT", endpoint)
+
+    model_name = cfg.get("model_path") or cfg["model_name"]
+    if cfg.get("model_path"):
+        os.environ.setdefault("HF_HUB_OFFLINE", "1")
+
     # Structured config sections
     data_cfg = cfg.get("data", {})
     gen_cfg = cfg.get("generation", {})
@@ -46,7 +54,7 @@ def main():
 
     results = []
     for out in run_offline_infer(
-        cfg["model_name"],
+        model_name,
         prompts,
         gen_cfg.get("temperature", 0.7),
         gen_cfg.get("top_p", 0.9),

@@ -19,6 +19,13 @@
 在运行整体代码前，务必先装配好DistillKit环境（通过[github](https://github.com/arcee-ai/DistillKit)获取）
 指令`make -C test7 all`可一键执行蒸馏的全部过程。
 
+若无法直接访问 HuggingFace，可在 `configs/teacher_infer.yaml` 中设置 `hf_endpoint`
+为镜像站点（例如 `https://hf-mirror.com`）。脚本会自动读取该字段并
+设置 `HF_ENDPOINT` 环境变量，从而通过镜像下载模型与权重。
+
+若已提前下载好模型，也可在配置中填写 `model_path` 指向本地目录，
+脚本会优先使用该路径加载模型，避免联网。
+
 ## 参考
 - DistillKit: hidden/logits KD 及 DeepSpeed 示例。
 - TRL GKDTrainer 文档。
