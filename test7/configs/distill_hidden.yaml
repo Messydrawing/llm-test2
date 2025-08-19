@@ -6,7 +6,8 @@ deepspeed: "configs/deepspeed_zero3.json"
 dataset:
   name: "json"
   data_files:
-    train: "data/teacher_outputs/train.pred.jsonl"
+    train: "data/train.jsonl"
+    validation: "data/val.jsonl"
   split: "train"
 train:
   epochs: 1
