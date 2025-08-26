@@ -11,7 +11,7 @@ sys.path.append(str(Path(__file__).resolve().parents[2]))
 from test8 import dataset_builder as db
 
 
-def test_build_dataset_format_and_balance(monkeypatch):
+def test_build_dataset_format_and_balance(monkeypatch, tmp_path):
     # prepare three windows producing up, down and stable trends
     window_up = pd.DataFrame(
         {
@@ -69,10 +69,17 @@ def test_build_dataset_format_and_balance(monkeypatch):
     monkeypatch.setattr(db, "_compute_indicators", lambda df: None)
     monkeypatch.setattr(db, "_window_samples", fake_window_samples)
 
-    train, val = db.build_dataset(["000001"], days=2, window=2, val_ratio=0, seed=0)
+    train, val, test = db.build_dataset(
+        ["000001"], days=2, window=2, val_ratio=0, test_ratio=0, seed=0, out_dir=tmp_path
+    )
 
     assert val == []
+    assert test == []
     assert len(train) == 3
+    # ensure files written
+    assert (tmp_path / "train.jsonl").exists()
+    assert (tmp_path / "val.jsonl").exists()
+    assert (tmp_path / "test.jsonl").exists()
     sample = train[0]
     assert set(sample.keys()) == {
         "stock_code",
