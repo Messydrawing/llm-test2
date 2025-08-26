@@ -20,6 +20,9 @@ from test8.config import (
     LORA_DROPOUT,
 )
 
+# Default dataset filename for explanation training
+TRAIN_EXPLAIN_FILE = "train_explain.jsonl"
+
 import torch
 from torch.utils.data import Dataset
 from transformers import (
@@ -91,7 +94,7 @@ def parse_args():
     parser.add_argument(
         "--train",
         type=Path,
-        default=DATA_DIR / "train_explain.jsonl",
+        default=DATA_DIR / TRAIN_EXPLAIN_FILE,
         help="Path to training data",
     )
     parser.add_argument(
@@ -129,7 +132,7 @@ def parse_args():
 def main():
     args = parse_args()
     model_path = getattr(args, "base_model", str(BASE_MODEL_PATH))
-    data_path = Path(getattr(args, "train", DATA_DIR / "train_explain.jsonl"))
+    data_path = Path(getattr(args, "train", DATA_DIR / TRAIN_EXPLAIN_FILE))
     output_path = Path(getattr(args, "model_out", EXPLANATION_MODEL_PATH))
     log_dir = getattr(args, "log_dir", None)
 
