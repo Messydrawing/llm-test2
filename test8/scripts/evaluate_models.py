@@ -3,6 +3,20 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Dict, List, Tuple
+import sys
+
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.append(str(ROOT))
+
+from test8.config import (
+    DATA_DIR,
+    BASE_MODEL_PATH,
+    TREND_MODEL_PATH,
+    ADVICE_MODEL_PATH,
+    EXPLANATION_MODEL_PATH,
+    MERGED_MODEL_PATH,
+)
 
 from datasets import load_metric
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -74,8 +88,7 @@ def call_teacher_api(prompt: str) -> str:  # pragma: no cover - placeholder
 
 
 def main() -> None:  # pragma: no cover - script entry point
-    base = Path(__file__).resolve().parents[2]
-    data_dir = base / "data"
+    data_dir = DATA_DIR
     trend_data = load_jsonl(data_dir / "test_trend.jsonl")
     advice_data = load_jsonl(data_dir / "test_advice.jsonl")
     explain_data = load_jsonl(data_dir / "test_explain.jsonl")
@@ -83,11 +96,11 @@ def main() -> None:  # pragma: no cover - script entry point
     metric = load_metric("bleu")
 
     model_paths = {
-        "Base_7B": base / "models" / "Base_7B",
-        "TrendModel_7B": base / "models" / "trend_model",
-        "AdviceModel_7B": base / "models" / "advice_model",
-        "ExplanationModel_7B": base / "models" / "explanation_model",
-        "MergedModel_7B": base / "models" / "MergedModel_7B",
+        "Base_7B": BASE_MODEL_PATH,
+        "TrendModel_7B": TREND_MODEL_PATH,
+        "AdviceModel_7B": ADVICE_MODEL_PATH,
+        "ExplanationModel_7B": EXPLANATION_MODEL_PATH,
+        "MergedModel_7B": MERGED_MODEL_PATH,
     }
 
     results: Dict[str, Dict[str, float]] = {}
@@ -108,7 +121,7 @@ def main() -> None:  # pragma: no cover - script entry point
     except NotImplementedError:
         print("Teacher_32B evaluation skipped: API not implemented.")
 
-    out_json = base / "evaluation_results.json"
+    out_json = ROOT / "evaluation_results.json"
     with out_json.open("w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
 
@@ -118,7 +131,7 @@ def main() -> None:  # pragma: no cover - script entry point
         for name, res in results.items()
     ]
     table = header + "\n".join(rows)
-    out_md = base / "evaluation_results.md"
+    out_md = ROOT / "evaluation_results.md"
     with out_md.open("w", encoding="utf-8") as f:
         f.write(table)
     print(table)

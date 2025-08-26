@@ -1,6 +1,24 @@
 import argparse
 import json
 from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.append(str(ROOT))
+
+from test8.config import (
+    BASE_MODEL_PATH,
+    DATA_DIR,
+    ADVICE_MODEL_PATH,
+    EPOCHS,
+    LEARNING_RATE,
+    BATCH_SIZE,
+    GRADIENT_ACCUMULATION_STEPS,
+    LORA_R,
+    LORA_ALPHA,
+    LORA_DROPOUT,
+)
 
 import torch
 from torch.utils.data import Dataset
@@ -74,24 +92,25 @@ def collate_fn(batch, pad_token_id: int):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train advice model")
-    parser.add_argument("--epochs", type=int, default=1)
-    parser.add_argument("--learning_rate", type=float, default=2e-5)
-    parser.add_argument("--batch_size", type=int, default=1)
-    parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
+    parser.add_argument("--epochs", type=int, default=EPOCHS)
+    parser.add_argument("--learning_rate", type=float, default=LEARNING_RATE)
+    parser.add_argument("--batch_size", type=int, default=BATCH_SIZE)
+    parser.add_argument(
+        "--gradient_accumulation_steps", type=int, default=GRADIENT_ACCUMULATION_STEPS
+    )
     parser.add_argument("--use_lora", action="store_true")
-    parser.add_argument("--lora_r", type=int, default=8)
-    parser.add_argument("--lora_alpha", type=int, default=16)
-    parser.add_argument("--lora_dropout", type=float, default=0.05)
+    parser.add_argument("--lora_r", type=int, default=LORA_R)
+    parser.add_argument("--lora_alpha", type=int, default=LORA_ALPHA)
+    parser.add_argument("--lora_dropout", type=float, default=LORA_DROPOUT)
     parser.add_argument("--use_8bit", action="store_true")
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    base_path = Path(__file__).resolve().parents[1]
-    model_path = base_path / "models" / "Qwen2.5-7B"
-    data_path = base_path / "data" / "train_advice.jsonl"
-    output_path = base_path / "models" / "advice_model"
+    model_path = BASE_MODEL_PATH
+    data_path = DATA_DIR / "train_advice.jsonl"
+    output_path = ADVICE_MODEL_PATH
 
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
     if tokenizer.pad_token is None:
