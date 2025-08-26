@@ -1,13 +1,23 @@
 base_model: ./models/Qwen2.5-7B
+architecture: qwen
+gate_mode: hidden
 dtype: float16
-shared_experts: 2
+shared_experts:
+  - source_model: ./models/Qwen2.5-7B
+    residual_scale: 0.5
 experts:
   - source_model: ./models/advice_model
     positive_prompts:
       - "给出股票操作建议"
+      - "提供交易策略"
+      - "推荐买入卖出方案"
   - source_model: ./models/explanation_model
     positive_prompts:
       - "用通俗语言解释财报"
+      - "解释公司的财务报告"
+      - "简化财报内容"
   - source_model: ./models/trend_model
     positive_prompts:
       - "预测市场趋势"
+      - "分析市场走势"
+      - "判断行情发展"
