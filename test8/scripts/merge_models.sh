@@ -3,7 +3,8 @@ set -e
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 BASE_DIR=$(dirname "$SCRIPT_DIR")
-OUTPUT_DIR="$BASE_DIR/models/merged_model"
+MERGED_MODEL_DIR="merged_model"
+OUTPUT_DIR="$BASE_DIR/models/$MERGED_MODEL_DIR"
 
 mkdir -p "$OUTPUT_DIR"
 cd "$BASE_DIR"
