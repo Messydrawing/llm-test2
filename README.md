@@ -320,7 +320,7 @@ python -m test6.evaluate --questions question.jsonl --models-dir multi_lora
 
 
 
-## test8：一键运行全流程脚本
+## test8：Merged kit 方案 （8月第4周）
 
 `test8` 目录下提供了 `run_all.sh`，依次执行数据构建、教师标注、三类任务模型训练、模型合并以及最终评测。
 运行该脚本即可完成蒸馏训练到评估的完整流程：
