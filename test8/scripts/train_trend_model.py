@@ -50,14 +50,10 @@ class SFTDataset(Dataset):
 
     def __getitem__(self, idx):
         example = self.samples[idx]
-        instruction = example.get("instruction", "")
-        input_text = example.get("input", "")
-        output = example.get("output", "")
-
-        if input_text:
-            prompt = f"{instruction}\n{input_text}"
-        else:
-            prompt = instruction
+        prompt = example.get("prompt", "")
+        output = example.get("label", "")
+        if isinstance(output, dict):
+            output = output.get("raw") or json.dumps(output, ensure_ascii=False)
 
         prompt_ids = self.tokenizer(
             prompt, add_special_tokens=False, truncation=True, max_length=self.max_length
