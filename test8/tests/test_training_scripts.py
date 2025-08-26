@@ -1,8 +1,8 @@
-import sys
-from pathlib import Path
-import json
 import argparse
 import importlib
+import json
+import sys
+from pathlib import Path
 
 # Allow imports from repo root
 sys.path.append(str(Path(__file__).resolve().parents[2]))
