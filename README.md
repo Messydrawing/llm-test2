@@ -319,3 +319,14 @@ python -m test6.evaluate --questions question.jsonl --models-dir multi_lora
 
 
 
+
+## test8：一键运行全流程脚本
+
+`test8` 目录下提供了 `run_all.sh`，依次执行数据构建、教师标注、三类任务模型训练、模型合并以及最终评测。
+运行该脚本即可完成蒸馏训练到评估的完整流程：
+
+```bash
+bash test8/run_all.sh
+```
+
+脚本使用 `test8/models` 中的本地基础模型权重，并在 `test8/` 下生成所需的数据与日志。
