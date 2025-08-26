@@ -69,7 +69,7 @@ import pytest
         ("test8.scripts.train_advice_model", "train_advice.jsonl", "ADVICE_MODEL_PATH"),
         (
             "test8.scripts.train_explanation_model",
-            "train_explanation.jsonl",
+            "train_explain.jsonl",
             "EXPLANATION_MODEL_PATH",
         ),
     ],
@@ -78,7 +78,7 @@ def test_training_scripts_load(monkeypatch, tmp_path, mod_name, data_file, path_
     mod = importlib.import_module(mod_name)
     data_path = tmp_path / data_file
     data_path.write_text(
-        json.dumps({"instruction": "hi", "input": "", "output": "bye"}) + "\n",
+        json.dumps({"prompt": "hi", "label": "bye"}) + "\n",
         encoding="utf-8",
     )
 

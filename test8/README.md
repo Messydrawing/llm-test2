@@ -30,13 +30,13 @@ pip install -r requirements.txt
 
 ## Data Format
 
-Each line in the training data is a JSON object:
+Each line in the training data is a JSON object with the keys used by the
+training scripts:
 
 ```json
 {
-  "instruction": "Predict future trend",
-  "input": "<kline summary>",
-  "output": "trend/analysis/advice"
+  "prompt": "<model input>",
+  "label": "expected output"
 }
 ```
 
