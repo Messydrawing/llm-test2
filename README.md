@@ -330,3 +330,10 @@ bash test8/run_all.sh
 ```
 
 脚本使用 `test8/models` 中的本地基础模型权重，并在 `test8/` 下生成所需的数据与日志。
+在执行模型合并前需预先安装 [Aratako/mergekit-qwen2](https://github.com/Aratako/mergekit-qwen2)，例如：
+
+```bash
+pip install git+https://github.com/Aratako/mergekit-qwen2.git
+```
+
+所有模型权重均从本地路径加载，不会触发网络下载。

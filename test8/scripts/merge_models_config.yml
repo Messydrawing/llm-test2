@@ -1,0 +1,13 @@
+base_model: ./models/Qwen2.5-7B
+dtype: float16
+shared_experts: 2
+experts:
+  - source_model: ./models/advice_model
+    positive_prompts:
+      - "给出股票操作建议"
+  - source_model: ./models/explanation_model
+    positive_prompts:
+      - "用通俗语言解释财报"
+  - source_model: ./models/trend_model
+    positive_prompts:
+      - "预测市场趋势"
