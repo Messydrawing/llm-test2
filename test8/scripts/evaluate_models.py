@@ -18,7 +18,7 @@ from test8.config import (
     MERGED_MODEL_PATH,
 )
 
-from datasets import load_metric
+from evaluate import load as load_metric
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 

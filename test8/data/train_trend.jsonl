@@ -1,0 +1,1 @@
+{"prompt": "股票 000001 近0日K线数据: []\n涨跌幅: 1.2%。请预测后市走势，给出简短分析和操作建议，并以 JSON 格式回复，包括 'prediction', 'analysis', 'advice' 三个字段。", "label": "stable"}

@@ -28,10 +28,12 @@ Install them with:
 pip install -r requirements.txt
 ```
 
-## Data Format
+## Data Generation and Format
 
-Each line in the training data is a JSON object with the keys used by the
-training scripts:
+`teacher_labeler.label_dataset` converts raw K-line records in `train.jsonl`
+into three task-specific files: `train_trend.jsonl`, `train_advice.jsonl` and
+`train_explain.jsonl`. Each line in these files is a JSON object with the keys
+consumed by the training scripts:
 
 ```json
 {

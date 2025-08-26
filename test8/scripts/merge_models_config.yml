@@ -4,7 +4,11 @@ gate_mode: hidden
 dtype: float16
 shared_experts:
   - source_model: ./models/Qwen2.5-7B
-    residual_scale: 0.5
+    positive_prompts:
+      - "聊天"
+      - "assistant"
+      - "一般"
+    residual_scale: 0.1
 experts:
   - source_model: ./models/advice_model
     positive_prompts:
