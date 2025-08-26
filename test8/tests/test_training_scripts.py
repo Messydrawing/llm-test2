@@ -69,7 +69,7 @@ import pytest
         ("test8.scripts.train_advice_model", "train_advice.jsonl", "ADVICE_MODEL_PATH"),
         (
             "test8.scripts.train_explanation_model",
-            "train_explanation.jsonl",
+            "train_explain.jsonl",
             "EXPLANATION_MODEL_PATH",
         ),
     ],
