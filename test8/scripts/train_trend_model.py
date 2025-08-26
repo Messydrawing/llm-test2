@@ -92,6 +92,30 @@ def collate_fn(batch, pad_token_id: int):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train trend model")
+    parser.add_argument(
+        "--train",
+        type=Path,
+        default=DATA_DIR / "train_trend.jsonl",
+        help="Path to training data",
+    )
+    parser.add_argument(
+        "--model-out",
+        type=Path,
+        default=TREND_MODEL_PATH,
+        help="Where to store the trained model",
+    )
+    parser.add_argument(
+        "--log-dir",
+        type=Path,
+        default=None,
+        help="Optional directory for training logs",
+    )
+    parser.add_argument(
+        "--base-model",
+        type=str,
+        default=str(BASE_MODEL_PATH),
+        help="Base model identifier or path",
+    )
     parser.add_argument("--epochs", type=int, default=EPOCHS)
     parser.add_argument("--learning_rate", type=float, default=LEARNING_RATE)
     parser.add_argument("--batch_size", type=int, default=BATCH_SIZE)
@@ -108,9 +132,10 @@ def parse_args():
 
 def main():
     args = parse_args()
-    model_path = BASE_MODEL_PATH
-    data_path = DATA_DIR / "train_trend.jsonl"
-    output_path = TREND_MODEL_PATH
+    model_path = getattr(args, "base_model", str(BASE_MODEL_PATH))
+    data_path = Path(getattr(args, "train", DATA_DIR / "train_trend.jsonl"))
+    output_path = Path(getattr(args, "model_out", TREND_MODEL_PATH))
+    log_dir = getattr(args, "log_dir", None)
 
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
     if tokenizer.pad_token is None:
@@ -145,6 +170,7 @@ def main():
         fp16=True,
         logging_steps=10,
         save_strategy="epoch",
+        logging_dir=str(log_dir) if log_dir else None,
     )
 
     trainer = Trainer(
