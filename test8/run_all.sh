@@ -45,4 +45,4 @@ python -m test8.scripts.train_explanation_model --train "$LABEL_DIR/train_explai
 bash "$SCRIPT_DIR/merge_models.sh" "$MODEL_DIR" "$MODEL_DIR/merged"
 
 # 5. Evaluate merged model
-python -m test8.scripts.evaluate_models --data "$DATA_DIR/val.jsonl" --model "$MODEL_DIR/merged" --log-dir "$LOG_DIR"
+python -m test8.scripts.evaluate_models
