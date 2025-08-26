@@ -36,20 +36,21 @@ def call_teacher(prompt: str) -> dict[str, str]:
         return {"content": f"{{}}", "reasoning": f"[error: {e}]"}
 
 
-def label_dataset(samples: Iterable[dict], out_dir: str | Path = ".") -> None:
+def label_dataset(samples: Iterable[dict], out_dir: str | Path = ".", split: str = "train") -> None:
     """Label ``samples`` and write multitask JSONL files.
 
+    ``split`` controls the filename prefix (e.g. ``"train"`` or ``"test"``).
     Three files are produced in ``out_dir``:
-    ``train_trend.jsonl`` for prediction labels,
-    ``train_advice.jsonl`` for advice generation and
-    ``train_explain.jsonl`` for analysis/description tasks.
+    ``<split>_trend.jsonl`` for prediction labels,
+    ``<split>_advice.jsonl`` for advice generation and
+    ``<split>_explain.jsonl`` for analysis/description tasks.
     """
 
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
-    trend_f = (out_path / "train_trend.jsonl").open("w", encoding="utf-8")
-    advice_f = (out_path / "train_advice.jsonl").open("w", encoding="utf-8")
-    explain_f = (out_path / "train_explain.jsonl").open("w", encoding="utf-8")
+    trend_f = (out_path / f"{split}_trend.jsonl").open("w", encoding="utf-8")
+    advice_f = (out_path / f"{split}_advice.jsonl").open("w", encoding="utf-8")
+    explain_f = (out_path / f"{split}_explain.jsonl").open("w", encoding="utf-8")
 
     for sample in samples:
         prompt = format_prompt(sample)

@@ -15,10 +15,10 @@ mkdir -p "$DATA_DIR" "$LABEL_DIR" "$MODEL_DIR" "$LOG_DIR"
 
 cd "$REPO_DIR"
 
-# 1. Build dataset
+# 1. Build dataset (including a small test split)
 python - <<PY
 from test8.dataset_builder import build_dataset
-build_dataset(out_dir="$DATA_DIR")
+build_dataset(out_dir="$DATA_DIR", test_ratio=0.1)
 PY
 
 # 2. Teacher labeling
@@ -27,9 +27,13 @@ import json
 from pathlib import Path
 from test8.teacher_labeler import label_dataset
 
-data_path = Path("$DATA_DIR/train.jsonl")
-samples = [json.loads(line) for line in data_path.open("r", encoding="utf-8")]
-label_dataset(samples, out_dir="$LABEL_DIR")
+train_path = Path("$DATA_DIR/train.jsonl")
+train_samples = [json.loads(line) for line in train_path.open("r", encoding="utf-8")]
+label_dataset(train_samples, out_dir="$LABEL_DIR", split="train")
+
+test_path = Path("$DATA_DIR/test.jsonl")
+test_samples = [json.loads(line) for line in test_path.open("r", encoding="utf-8")]
+label_dataset(test_samples, out_dir="$DATA_DIR", split="test")
 PY
 
 # 3. Train models

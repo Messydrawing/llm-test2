@@ -112,12 +112,14 @@ def build_dataset(
     days: int = 180,
     window: int = 30,
     val_ratio: float = 0.2,
+    test_ratio: float = 0.0,
     seed: int | None = None,
     out_dir: str | Path | None = None,
-) -> Tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+) -> Tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     """Build dataset and optionally save to JSONL files.
 
-    Returns ``(train_samples, val_samples)``.
+    Returns ``(train_samples, val_samples, test_samples)``. ``test_ratio``
+    defaults to ``0.0`` so existing two-way splits continue to work.
     """
 
     codes = list(stock_codes) if stock_codes else list(DEFAULT_CODES)
@@ -137,13 +139,19 @@ def build_dataset(
             samples.append(sample)
 
     rng.shuffle(samples)
-    split = int(len(samples) * (1 - val_ratio))
-    train, val = samples[:split], samples[split:]
+    n_total = len(samples)
+    n_val = int(n_total * val_ratio)
+    n_test = int(n_total * test_ratio)
+    n_train = n_total - n_val - n_test
+    train = samples[:n_train]
+    val = samples[n_train : n_train + n_val]
+    test = samples[n_train + n_val :]
 
     if out_dir:
         out_path = Path(out_dir)
         out_path.mkdir(parents=True, exist_ok=True)
         _save_jsonl(train, out_path / "train.jsonl")
         _save_jsonl(val, out_path / "val.jsonl")
+        _save_jsonl(test, out_path / "test.jsonl")
 
-    return train, val
+    return train, val, test
