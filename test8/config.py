@@ -7,7 +7,7 @@ BASE_MODEL_PATH = Path("./models/Qwen2.5-7B")
 TREND_MODEL_PATH = Path("./models/trend_model")
 ADVICE_MODEL_PATH = Path("./models/advice_model")
 EXPLANATION_MODEL_PATH = Path("./models/explanation_model")
-MERGED_MODEL_PATH = Path("./models/MergedModel_7B")
+MERGED_MODEL_PATH = Path("./models/merged_model")
 
 # Data directory
 DATA_DIR = Path("./data")

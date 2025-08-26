@@ -100,7 +100,7 @@ def main() -> None:  # pragma: no cover - script entry point
         "TrendModel_7B": TREND_MODEL_PATH,
         "AdviceModel_7B": ADVICE_MODEL_PATH,
         "ExplanationModel_7B": EXPLANATION_MODEL_PATH,
-        "MergedModel_7B": MERGED_MODEL_PATH,
+        "MergedModel": MERGED_MODEL_PATH,
     }
 
     results: Dict[str, Dict[str, float]] = {}
