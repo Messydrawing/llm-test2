@@ -78,7 +78,7 @@ def test_training_scripts_load(monkeypatch, tmp_path, mod_name, data_file, path_
     mod = importlib.import_module(mod_name)
     data_path = tmp_path / data_file
     data_path.write_text(
-        json.dumps({"prompt": "hi", "label": "bye"}) + "\n",
+        json.dumps({"prompt": "hi", "label": {"raw": "bye"}}) + "\n",
         encoding="utf-8",
     )
 

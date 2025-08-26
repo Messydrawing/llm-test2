@@ -69,7 +69,7 @@ def test_label_samples_writes_json(tmp_path):
 
     def dummy(prompt):
         return {
-            "content": json.dumps({"out": prompt}),
+            "content": prompt,
             "reasoning": f"why {prompt}",
         }
 
@@ -79,5 +79,5 @@ def test_label_samples_writes_json(tmp_path):
     assert out_file.exists()
     loaded = [json.loads(line) for line in out_file.read_text().splitlines()]
     assert loaded == records
-    assert records[0]["label"] == {"out": "a", "reasoning": "why a"}
-    assert records[1]["label"] == {"out": "b", "reasoning": "why b"}
+    assert records[0]["label"] == {"raw": "a", "reasoning": "why a"}
+    assert records[1]["label"] == {"raw": "b", "reasoning": "why b"}

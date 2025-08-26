@@ -43,7 +43,12 @@ def evaluate_trend(
     correct = 0
     for sample in data:
         prompt = sample.get("prompt", "")
-        reference = sample.get("completion", "").strip().lower()
+        label = sample.get("label", "")
+        if isinstance(label, dict):
+            reference = (label.get("raw") or json.dumps(label, ensure_ascii=False))
+        else:
+            reference = str(label)
+        reference = reference.strip().lower()
         prediction = generate_text(model, tokenizer, prompt).strip().lower()
         if prediction == reference:
             correct += 1
@@ -63,7 +68,11 @@ def evaluate_bleu(
     references: List[List[List[str]]] = []
     for sample in data:
         prompt = sample.get("prompt", "")
-        reference = sample.get("completion", "")
+        label = sample.get("label", "")
+        if isinstance(label, dict):
+            reference = (label.get("raw") or json.dumps(label, ensure_ascii=False))
+        else:
+            reference = str(label)
         prediction = generate_text(model, tokenizer, prompt)
         predictions.append(prediction.split())
         references.append([reference.split()])
