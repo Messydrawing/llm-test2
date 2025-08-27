@@ -18,7 +18,10 @@ from test8.config import (
     MERGED_MODEL_PATH,
 )
 
-from evaluate import load as load_metric
+try:  # pragma: no cover - optional dependency
+    from evaluate import load as load_metric
+except ModuleNotFoundError:  # pragma: no cover - graceful degradation
+    load_metric = None
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
@@ -62,7 +65,7 @@ def evaluate_bleu(
     metric,
 ) -> float:
     """Compute BLEU score for advice/explanation tasks."""
-    if not data:
+    if not data or metric is None:
         return 0.0
     predictions: List[List[str]] = []
     references: List[List[List[str]]] = []
@@ -102,7 +105,11 @@ def main() -> None:  # pragma: no cover - script entry point
     advice_data = load_jsonl(data_dir / "test_advice.jsonl")
     explain_data = load_jsonl(data_dir / "test_explain.jsonl")
 
-    metric = load_metric("bleu")
+    if load_metric is None:  # pragma: no cover - optional dependency
+        print("'evaluate' package not found; BLEU scores will be set to 0.")
+        metric = None
+    else:
+        metric = load_metric("bleu")
 
     model_paths = {
         "Base_7B": BASE_MODEL_PATH,
