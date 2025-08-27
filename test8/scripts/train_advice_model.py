@@ -39,7 +39,7 @@ except ImportError:  # pragma: no cover - optional dependency
 class SFTDataset(Dataset):
     """Simple supervised fine-tuning dataset."""
 
-    def __init__(self, path: Path, tokenizer: AutoTokenizer, max_length: int = 4096):
+    def __init__(self, path: Path, tokenizer: AutoTokenizer, max_length: int = 1024):
         with path.open("r", encoding="utf-8") as f:
             self.samples = [json.loads(line) for line in f]
         self.tokenizer = tokenizer
@@ -123,6 +123,12 @@ def parse_args():
     parser.add_argument("--lora_alpha", type=int, default=LORA_ALPHA)
     parser.add_argument("--lora_dropout", type=float, default=LORA_DROPOUT)
     parser.add_argument("--use_8bit", action="store_true")
+    parser.add_argument(
+        "--max_length",
+        type=int,
+        default=1024,
+        help="Maximum number of tokens per sample",
+    )
     return parser.parse_args()
 
 
@@ -132,6 +138,7 @@ def main():
     data_path = Path(getattr(args, "train", DATA_DIR / "train_advice.jsonl"))
     output_path = Path(getattr(args, "model_out", ADVICE_MODEL_PATH))
     log_dir = getattr(args, "log_dir", None)
+    max_length = getattr(args, "max_length", 1024)
 
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
     if tokenizer.pad_token is None:
@@ -154,7 +161,7 @@ def main():
         )
         model = get_peft_model(model, lora_config)
 
-    dataset = SFTDataset(data_path, tokenizer)
+    dataset = SFTDataset(data_path, tokenizer, max_length=max_length)
 
     training_args = TrainingArguments(
         output_dir=str(output_path),
