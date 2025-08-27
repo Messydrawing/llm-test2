@@ -44,7 +44,7 @@ python -m test8.scripts.train_advice_model --train "$LABEL_DIR/train_advice.json
 python -m test8.scripts.train_explanation_model --train "$LABEL_DIR/train_explain.jsonl" --model-out "$MODEL_DIR/explain" --log-dir "$LOG_DIR/explain" --base-model "$BASE_MODEL" --use_lora --use_8bit
 
 # 4. Merge models
-bash "$SCRIPT_DIR/merge_models.sh" "$MODEL_DIR" "$MODEL_DIR/merged"
+bash "$SCRIPT_DIR/scripts/merge_models.sh" "$MODEL_DIR" "$MODEL_DIR/merged"
 
 # 5. Evaluate merged model
 python -m test8.scripts.evaluate_models
