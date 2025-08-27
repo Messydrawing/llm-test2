@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
 
@@ -37,9 +39,9 @@ label_dataset(test_samples, out_dir="$DATA_DIR", split="test")
 PY
 
 # 3. Train models
-python -m test8.scripts.train_trend_model --train "$LABEL_DIR/train_trend.jsonl" --model-out "$MODEL_DIR/trend" --log-dir "$LOG_DIR/trend" --base-model "$BASE_MODEL"
-python -m test8.scripts.train_advice_model --train "$LABEL_DIR/train_advice.jsonl" --model-out "$MODEL_DIR/advice" --log-dir "$LOG_DIR/advice" --base-model "$BASE_MODEL"
-python -m test8.scripts.train_explanation_model --train "$LABEL_DIR/train_explain.jsonl" --model-out "$MODEL_DIR/explain" --log-dir "$LOG_DIR/explain" --base-model "$BASE_MODEL"
+python -m test8.scripts.train_trend_model --train "$LABEL_DIR/train_trend.jsonl" --model-out "$MODEL_DIR/trend" --log-dir "$LOG_DIR/trend" --base-model "$BASE_MODEL" --use_lora --use_8bit
+python -m test8.scripts.train_advice_model --train "$LABEL_DIR/train_advice.jsonl" --model-out "$MODEL_DIR/advice" --log-dir "$LOG_DIR/advice" --base-model "$BASE_MODEL" --use_lora --use_8bit
+python -m test8.scripts.train_explanation_model --train "$LABEL_DIR/train_explain.jsonl" --model-out "$MODEL_DIR/explain" --log-dir "$LOG_DIR/explain" --base-model "$BASE_MODEL" --use_lora --use_8bit
 
 # 4. Merge models
 bash "$SCRIPT_DIR/merge_models.sh" "$MODEL_DIR" "$MODEL_DIR/merged"
