@@ -25,6 +25,8 @@ TRAIN_EXPLAIN_FILE = "train_explain.jsonl"
 
 import torch
 from torch.utils.data import Dataset
+import importlib
+
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
@@ -146,11 +148,14 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    load_in_8bit = False
+    if args.use_8bit and importlib.util.find_spec("bitsandbytes"):
+        load_in_8bit = True
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
         trust_remote_code=True,
         device_map="auto",
-        load_in_8bit=args.use_8bit,
+        load_in_8bit=load_in_8bit,
     )
     model.config.use_cache = False
 
