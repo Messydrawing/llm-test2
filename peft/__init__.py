@@ -32,6 +32,20 @@ class PeftModel(nn.Module):
         self.model.save_pretrained(save_directory, *args, **kwargs)
 
 
+class PeftMixedModel(PeftModel):
+    """Placeholder representing a model with merged PEFT adapters.
+
+    The real ``peft`` library exposes :class:`PeftMixedModel` to denote a
+    model that contains both the base and adapter weights.  The training
+    utilities from ``transformers`` import this symbol to detect whether a
+    model uses PEFT.  This lightweight stub simply inherits from
+    :class:`PeftModel` so that the import succeeds without pulling in the
+    heavy dependency.
+    """
+
+    pass
+
+
 @dataclass
 class LoraConfig:
     """Placeholder configuration container."""
@@ -52,4 +66,9 @@ def get_peft_model(model: nn.Module, config: LoraConfig) -> PeftModel:
     return PeftModel(model)
 
 
-__all__ = ["PeftModel", "LoraConfig", "get_peft_model"]
+__all__ = [
+    "PeftModel",
+    "PeftMixedModel",
+    "LoraConfig",
+    "get_peft_model",
+]
