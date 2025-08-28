@@ -27,7 +27,10 @@ def _compute_indicators(df) -> None:
     """Add MA5/MA10, RSI14 and MACD columns to ``df`` in-place."""
     import numpy as np
     df["pct_chg"] = df["close"].pct_change() * 100
-    df["pct_chg"].fillna(0, inplace=True)
+    # Avoid chained-assignment warnings and upcoming pandas changes by
+    # assigning the filled Series back to the DataFrame instead of using
+    # ``inplace=True`` on the Series, which can operate on a copy.
+    df["pct_chg"] = df["pct_chg"].fillna(0)
     df["MA5"] = df["close"].rolling(5).mean()
     df["MA10"] = df["close"].rolling(10).mean()
     diffs = df["close"].diff()
