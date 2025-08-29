@@ -1,0 +1,7 @@
+# Training configuration
+base_model: models/base/placeholder
+train_data: data/processed/train.jsonl
+val_data: data/processed/val.jsonl
+output_dir: models/students/placeholder
+batch_size: 2
+epochs: 3

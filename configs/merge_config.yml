@@ -1,0 +1,5 @@
+base_model: models/base/placeholder
+adapters:
+  - models/students/adapter1
+output_dir: models/merged/placeholder
+method: placeholder_method
