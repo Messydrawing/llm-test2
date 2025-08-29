@@ -1,0 +1,5 @@
+model_path: models/students/placeholder
+eval_data: data/processed/val.jsonl
+metrics:
+  - rouge
+  - bleu

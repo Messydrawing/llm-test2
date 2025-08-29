@@ -1,3 +1,37 @@
+# 项目简介
+
+该仓库提供一个轻量级的大模型蒸馏与合并框架。仓库中预先建立了常用的数据与模型目录，便于快速开始实验：
+
+- `data/raw`：原始输入数据。
+- `data/teacher_outputs`：教师模型生成的标注结果。
+- `data/processed`：清洗后的训练与验证数据。
+- `models/base`：基础模型权重存放位置。
+- `models/students`：学生模型或适配器的输出目录。
+- `models/merged`：模型合并后的最终模型。
+- `configs/`：YAML 格式的配置文件。
+- `scripts/`：运行流程所需的脚本示例。
+- `src/`：核心源码，按 teacher_api、training、merging、evaluation、util 等模块划分。
+
+## 运行流程
+1. 将原始数据放入 `data/raw`，并根据需要编写脚本至 `scripts/`。
+2. 调用 `src/teacher_api` 中的接口生成教师模型输出，保存到 `data/teacher_outputs`。
+3. 清洗并转换数据到 `data/processed`。
+4. 依据 `configs/training.yaml` 使用 `src/training` 训练学生模型，模型权重保存在 `models/students`。
+5. 按 `configs/merge_config.yml` 调用 `src/merging` 合并模型，结果放置于 `models/merged`。
+6. 使用 `configs/eval_config.yaml` 配合 `src/evaluation` 对模型进行指标评估。
+
+## 依赖说明
+
+- Python >= 3.9
+- PyTorch
+- Transformers
+- PEFT
+- Datasets
+- SentenceTransformers
+- 其他常用库：yaml、pandas、requests 等
+
+---
+
 
 
 
