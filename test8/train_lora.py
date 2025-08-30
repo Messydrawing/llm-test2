@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from dataclasses import dataclass
 import inspect
 
@@ -12,7 +13,12 @@ if not hasattr(lr_sched, "LRScheduler"):
     lr_sched.LRScheduler = lr_sched._LRScheduler
 
 from datasets import Dataset
-from peft import PeftModel, prepare_model_for_kbit_training
+from peft import (
+    LoraConfig,
+    PeftModel,
+    get_peft_model,
+    prepare_model_for_kbit_training,
+)
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
@@ -25,7 +31,7 @@ from transformers import (
 @dataclass
 class TrainConfig:
     base_model: str = "/zeng_gk/Zengxl/models/Qwen1.5-7B"
-    lora_path: str = "models/merged"
+    lora_path: str | None = "models/merged"
     data_path: str = "cleaned_labeled_data.jsonl"
     eval_path: str | None = None
     output_dir: str = "models/merged_fin"
@@ -121,7 +127,33 @@ def main(cfg: TrainConfig) -> None:
         model.config.max_position_embeddings = int(base_pos * cfg.rope_factor)
 
     model = prepare_model_for_kbit_training(model)
-    model = PeftModel.from_pretrained(model, cfg.lora_path)
+
+    adapter_cfg = (
+        os.path.join(cfg.lora_path, "adapter_config.json")
+        if cfg.lora_path
+        else None
+    )
+    if adapter_cfg and os.path.exists(adapter_cfg):
+        model = PeftModel.from_pretrained(
+            model, cfg.lora_path, local_files_only=True
+        )
+    else:
+        lora_cfg = LoraConfig(
+            r=8,
+            lora_alpha=32,
+            lora_dropout=0.05,
+            target_modules=[
+                "q_proj",
+                "k_proj",
+                "v_proj",
+                "o_proj",
+                "gate_proj",
+                "up_proj",
+                "down_proj",
+            ],
+            task_type="CAUSAL_LM",
+        )
+        model = get_peft_model(model, lora_cfg)
 
     args_kwargs = dict(
         output_dir=cfg.output_dir,
