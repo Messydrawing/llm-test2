@@ -1,0 +1,6 @@
+{
+  "required_keys": ["prediction", "analysis", "advice"],
+  "forbidden_phrases": ["error", "traceback"],
+  "min_length": 20,
+  "max_length": 1000
+}
