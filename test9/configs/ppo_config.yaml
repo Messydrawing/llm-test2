@@ -1,0 +1,9 @@
+model_name: gpt2
+sft_model_path: ../models/sft
+prompt_path: ../data/train.jsonl
+output_dir: ../models/ppo
+ppo_config:
+  batch_size: 1
+  learning_rate: 1.0e-5
+  log_with: null
+  max_new_tokens: 32

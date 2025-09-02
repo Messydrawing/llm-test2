@@ -1,0 +1,9 @@
+model_name: gpt2
+train_path: ../data/train.jsonl
+val_path: ../data/val.jsonl
+training_args:
+  num_train_epochs: 1
+  per_device_train_batch_size: 1
+  per_device_eval_batch_size: 1
+  logging_steps: 1
+  save_strategy: "no"
