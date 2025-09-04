@@ -123,7 +123,13 @@ def resolve_direction(text: str) -> Optional[str]:
     return None
 
 
-def evaluate(tokenizer, model, device, samples: List[Dict[str, Any]]) -> float:
+def evaluate(
+    tokenizer,
+    model,
+    device,
+    samples: List[Dict[str, Any]],
+    max_new_tokens: int = 512,
+) -> float:
     if not samples:
         return 0.0
     correct = 0.0
@@ -140,12 +146,23 @@ def evaluate(tokenizer, model, device, samples: List[Dict[str, Any]]) -> float:
                 messages, tokenize=False, add_generation_prompt=True
             )
         inputs = tokenizer(prompt, return_tensors="pt").to(device)
+        # Determine how many tokens we can still generate without exceeding
+        # the model's context window. This prevents truncation while keeping
+        # generation within the model limits.
+        ctx_len = inputs["input_ids"].shape[1]
+        max_ctx = getattr(model.config, "max_position_embeddings", ctx_len + max_new_tokens)
+        gen_tokens = min(max_new_tokens, max_ctx - ctx_len)
         with torch.no_grad():
             out = model.generate(
-                **inputs, max_new_tokens=128, do_sample=False, temperature=0
+                **inputs,
+                max_new_tokens=gen_tokens,
+                max_length=min(max_ctx, ctx_len + gen_tokens),
+                do_sample=False,
+                temperature=0,
+                pad_token_id=tokenizer.eos_token_id,
             )
         answer_raw = tokenizer.decode(
-            out[0][inputs["input_ids"].shape[1] :], skip_special_tokens=True
+            out[0][ctx_len:], skip_special_tokens=True
         )
         answer = answer_raw.strip()
 
@@ -187,6 +204,12 @@ def main() -> None:
     ap.add_argument("--base", required=True, help="Base model directory")
     ap.add_argument("--student", required=True, help="LoRA directory")
     ap.add_argument("--out", help="Optional JSONL output path")
+    ap.add_argument(
+        "--max-new-tokens",
+        type=int,
+        default=512,
+        help="Maximum tokens to generate for each sample",
+    )
     args = ap.parse_args()
 
     random.seed(0)
@@ -197,7 +220,7 @@ def main() -> None:
             for rec in samples:
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n")
     tokenizer, model, device = load_model(args.base, args.student)
-    acc = evaluate(tokenizer, model, device, samples)
+    acc = evaluate(tokenizer, model, device, samples, max_new_tokens=args.max_new_tokens)
     print(f"Accuracy: {acc:.2%}")
     if args.out:
         print(f"Saved samples to {args.out}")
