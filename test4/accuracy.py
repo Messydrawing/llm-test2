@@ -100,6 +100,14 @@ def evaluate(tokenizer, model, device, samples: List[Dict[str, Any]]) -> float:
     correct = 0
     for s in samples:
         prompt = build_prompt(s)
+        if hasattr(tokenizer, "apply_chat_template"):
+            messages = [
+                {"role": "system", "content": "你是一个只回答涨或跌的助手。"},
+                {"role": "user", "content": prompt},
+            ]
+            prompt = tokenizer.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=True
+            )
         max_len = max(8, tokenizer.model_max_length - 5)
         inputs = tokenizer(
             prompt,
