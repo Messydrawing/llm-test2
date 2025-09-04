@@ -33,15 +33,25 @@ def sample_windows(num_samples: int = 100) -> List[Dict[str, Any]]:
             if t1_date > cutoff:
                 continue
             win = df.iloc[start : start + 30].reset_index(drop=True)
-            t0 = win["close"].iloc[0]
-            t1 = win["close"].iloc[-1]
-            t2 = df["close"].iloc[end + 7]
-            label = "跌" if t1 > t2 else "涨"
+            t0_close = win["close"].iloc[0]
+            t1_close = win["close"].iloc[-1]
+            t2_close = df["close"].iloc[end + 7]
+            t0_date = win["date"].iloc[0]
+            t2_date = df["date"].iloc[end + 7]
+            change = t1_close - t0_close
+            label = "跌" if t1_close > t2_close else "涨"
             samples.append(
                 {
                     "code": code,
                     "data": win.to_dict(orient="records"),
                     "label": label,
+                    "t0_date": t0_date,
+                    "t0_close": t0_close,
+                    "t1_date": t1_date,
+                    "t1_close": t1_close,
+                    "t2_date": t2_date,
+                    "t2_close": t2_close,
+                    "change": change,
                 }
             )
     random.shuffle(samples)
@@ -94,15 +104,31 @@ def evaluate(tokenizer, model, device, samples: List[Dict[str, Any]]) -> float:
         ).to(device)
         with torch.no_grad():
             out = model.generate(**inputs, max_new_tokens=5)
-        answer = tokenizer.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
+        answer = tokenizer.decode(
+            out[0][inputs["input_ids"].shape[1] :], skip_special_tokens=True
+        )
         if "涨" in answer and "跌" not in answer:
             pred = "涨"
         elif "跌" in answer and "涨" not in answer:
             pred = "跌"
         else:
             pred = None
+
         if pred == s["label"]:
             correct += 1
+            result = "预测正确"
+        else:
+            result = "预测错误"
+
+        direction = "涨" if s["change"] >= 0 else "跌"
+        print(
+            f"code: {s['code']}, t0: {s['t0_date']}/{s['t0_close']:.2f}, "
+            f"t1: {s['t1_date']}/{s['t1_close']:.2f}, t2: {s['t2_date']}/{s['t2_close']:.2f}"
+        )
+        print(
+            f"change: {s['change']:.2f} ({direction}), answer: {answer}, "
+            f"pred: {pred}, {result}"
+        )
     return correct / len(samples)
 
 
