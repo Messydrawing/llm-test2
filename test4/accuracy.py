@@ -70,8 +70,11 @@ def build_prompt(sample: Dict[str, Any]) -> str:
 
 
 def load_model(base: str, student: str):
+    torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
     tokenizer = AutoTokenizer.from_pretrained(base, trust_remote_code=True)
-    model = AutoModelForCausalLM.from_pretrained(base, trust_remote_code=True)
+    model = AutoModelForCausalLM.from_pretrained(
+        base, trust_remote_code=True, torch_dtype=torch_dtype
+    )
     tokenizer.pad_token = tokenizer.eos_token
     if hasattr(PeftModel, "from_pretrained"):
         try:
@@ -81,7 +84,9 @@ def load_model(base: str, student: str):
     else:  # pragma: no cover - stub fallback
         if student != base:
             try:
-                model = AutoModelForCausalLM.from_pretrained(student, trust_remote_code=True)
+                model = AutoModelForCausalLM.from_pretrained(
+                    student, trust_remote_code=True, torch_dtype=torch_dtype
+                )
             except Exception as e:
                 print(f"[warning] failed to load student model from {student}: {e}")
     device = "cuda" if torch.cuda.is_available() else "cpu"
