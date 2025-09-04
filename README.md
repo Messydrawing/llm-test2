@@ -273,6 +273,7 @@ After fine-tuning:  bleu: 0.4519, rougeL: 0.5123, embed: 0.8921
 `rope_scaling` 与 `max_position_embeddings`，从而将 Qwen‑1.5‑7B 的上下文长度扩展到
 4K 或 8K。推理脚本 `test4/inference.py` 也默认使用 `max_length=4096` 并限制生成不超过
 300 token，以验证长窗口下的效果。
+`test4`的自行可调整指令是：`python -m test4.distill`，其中后继可调整的指令包括： `--windows` 每支股票取几条数据； `--val-ratio` 用于评估的数据量占比； `--max-tokens` token输出的最大值； `--max-len token`读取的最大值； `--out LoRA`参数保存的目录； `--stock STOCK` 如果不需要调用教师模型API，已经有成熟的数据集，数据集的位置； `--skip-teacher` 如果键入了stock指令，必须加上这项，表示跳过教师模型采样了；`--overwrite` 覆写已有的数据集； `--rope-factor ROPE_FACTOR` `test4`新增功能，调整数值可以放大max-len，目前尝试0.5的数值可以放大到120天的股票窗口； `--no-balance` 数据采样不做均衡处理
 
 ## test5：引入GraphRAG（7月第4周，考察fastgraphRAG是否可行）
 
