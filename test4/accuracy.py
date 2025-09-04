@@ -65,7 +65,7 @@ def build_prompt(sample: Dict[str, Any]) -> str:
     change = t1 - t0
     return (
         f"股票代码“{sample['code']}”，数据：{data_str}，涨跌幅：{change:.2f}，"
-        "请你基于以上数据，判断股票未来7天的涨跌趋势，输出“涨”或“跌”。"
+        "请你基于以上数据，判断股票未来7天的涨跌趋势。请仅回答一个汉字：涨或跌。"
     )
 
 
@@ -109,13 +109,13 @@ def evaluate(tokenizer, model, device, samples: List[Dict[str, Any]]) -> float:
         ).to(device)
         with torch.no_grad():
             out = model.generate(**inputs, max_new_tokens=5)
-        answer = tokenizer.decode(
+        answer_raw = tokenizer.decode(
             out[0][inputs["input_ids"].shape[1] :], skip_special_tokens=True
         )
-        if "涨" in answer and "跌" not in answer:
-            pred = "涨"
-        elif "跌" in answer and "涨" not in answer:
-            pred = "跌"
+        answer = answer_raw.strip()
+        first_char = answer[:1]
+        if first_char in ("涨", "跌"):
+            pred = first_char
         else:
             pred = None
 
@@ -130,6 +130,7 @@ def evaluate(tokenizer, model, device, samples: List[Dict[str, Any]]) -> float:
             f"code: {s['code']}, t0: {s['t0_date']}/{s['t0_close']:.2f}, "
             f"t1: {s['t1_date']}/{s['t1_close']:.2f}, t2: {s['t2_date']}/{s['t2_close']:.2f}"
         )
+        print(f"raw answer: {answer_raw!r}")
         print(
             f"change: {s['change']:.2f} ({direction}), answer: {answer}, "
             f"pred: {pred}, {result}"
